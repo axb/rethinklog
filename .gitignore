@@ -1,0 +1,21 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/src/CMakeFiles
+/src/Debug
+/src/rethinklog.dir/Debug/rethinklog.tlog
+/src/rethinklog.dir/Debug
+/src/x64/Debug/ZERO_CHECK
+/src/ALL_BUILD.vcxproj
+/src/ALL_BUILD.vcxproj.filters
+/src/CMakeCache.txt
+/src/cmake_install.cmake
+/src/rethinklog.opensdf
+/src/rethinklog.sdf
+/src/rethinklog.sln
+/src/rethinklog.v12.suo
+/src/rethinklog.vcxproj
+/src/rethinklog.vcxproj.filters
+/src/ZERO_CHECK.vcxproj
+/src/ZERO_CHECK.vcxproj.filters
