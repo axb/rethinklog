@@ -22,21 +22,21 @@
 #include "pubsub.h"
 
 int main(int argc, char *argv[]) {
-   
+
    // TODO: setup logging
 
    Broker broker;
    {
       // start services
-      Storage stg(broker, argc, argv );
+      Storage stg(broker, argc, argv);
       ZmqTransport net(broker, stg.config());
       WriteSvc wrt(broker, stg);
       ReadSvc rdr(broker, stg);
       PubSubSvc pubsub(broker);
 
-      // TODO: replication, admin, bridge, producer
+      // TODO: replication, admin, local tasks, bridge, producer
 
-      broker.start( stg.config().nthreads() );
+      broker.start(stg.config().nthreads());
 
       // simple wait
       _getch();

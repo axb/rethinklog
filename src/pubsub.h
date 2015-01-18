@@ -1,7 +1,7 @@
 #pragma once
 
 /*
-   Subscription related protocol
+   Subscription related protocol & pipeline
 */
 
 class Broker;

@@ -1,5 +1,3 @@
 #include "pubsub.h"
 
-PubSubSvc::PubSubSvc(Broker & brk_)
-{
-}
+PubSubSvc::PubSubSvc(Broker & brk_) {}

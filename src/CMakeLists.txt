@@ -19,7 +19,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS wire.proto)
 #	Boost
 #
 SET(Boost_USE_STATIC_LIBS ON)
-find_package( Boost COMPONENTS log REQUIRED)
+find_package( Boost COMPONENTS log program_options REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 
@@ -42,7 +42,7 @@ add_executable(	${PROJECT}
 
 target_link_libraries(	${PROJECT} 
 						${PROTOBUF_LIBRARIES}
-						${Boost_log_LIBRARY} )
+						${Boost_LIBRARIES} )
 
 #	client library
 

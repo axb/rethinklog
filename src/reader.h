@@ -1,7 +1,7 @@
 #pragma once
 
 /*
-   Read related protocol
+   Read related protocol & pipeline
 */
 
 class Broker;

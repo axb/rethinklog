@@ -1,49 +1,55 @@
 #include "storage.h"
 
-Storage::Storage(Broker & bk, int argc, char * argv[])
-   : _config( argc, argv )
-{
-   // setup data dir
-}
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
-Config & Storage::config()
-{
-   return _config;
-}
+struct Config::TData : public boost::property_tree::ptree{
 
-Stripe * Storage::stripe(std::string topic_, int part_)
-{
-   return NULL;
-}
+};
 
-void Storage::housekeeping()
-{
-}
-
-void Storage::abort()
-{
-   // close all open files
-}
-
-Config::Config(int argc, char * argv[])
-{
+Config::Config(int argc, char * argv[]) {
    // 
+
 }
 
-std::string Config::dataDir() const
-{
+std::string Config::me() {
    return std::string();
 }
 
-int Config::nthreads() const
-{
+std::string Config::dataDir() const {
+   return std::string();
+}
+
+int Config::nthreads() const {
    return 0;
 }
 
-Stripe::Stripe(std::string topic_, int part_, Config & cfg_)
-{
+void Config::build(const std::string & src_) {}
+
+std::string Config::serialize() {
+   return std::string();
 }
 
-void Stripe::append()
-{
+Storage::Storage(Broker & bk, int argc, char * argv[])
+   : _config(argc, argv) {
+   // setup data dir
 }
+
+Config & Storage::config() {
+   return _config;
+}
+
+Stripe * Storage::stripe(std::string topic_, int part_) {
+   return NULL;
+}
+
+void Storage::housekeeping() {}
+
+void Storage::abort() {
+   // close all open files
+}
+
+
+Stripe::Stripe(std::string topic_, int part_, Config & cfg_) {}
+
+void Stripe::append() {}
