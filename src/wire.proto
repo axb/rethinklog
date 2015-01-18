@@ -1,6 +1,27 @@
 package wire;
 
-// 
-message Hello {
-};
+// get client configuration
+
+
+// publish
+//	topic
+//	partition
+//	key
+//	data
+// reply returns offset
+// can be processed only by master
+
+// publish batch
+
+
+// subscribe
+//	selector : topic, partition, keyset
+// can be processed by any replica
+// reply gives current offset
+
+
+// read
+//	selector : topic, partition, keyset
+//	starting from date|offset
+//	ending date|offset
 

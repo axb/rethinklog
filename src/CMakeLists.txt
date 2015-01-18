@@ -4,23 +4,47 @@ set (PROJECT rethinklog)
 project(${PROJECT})
 
 #
-# protobuf
+# libraries
 #
-find_package(Protobuf REQUIRED)
+
+#	protobuf
+#
+find_package(Protobuf REQUIRED)  
 include_directories(${PROTOBUF_INCLUDE_DIRS})
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS wire.proto)
 
+#	ZeroMQ
 #
-# ZeroMQ
+
+#	Boost
+#
+SET(Boost_USE_STATIC_LIBS ON)
+find_package( Boost COMPONENTS log REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
+
+
+#
+# own sources
+# 
+file(GLOB sources ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB headers ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+
+
+#
+# build
 #
 
-
-#find_package(Boost)
-
-
+#	server
 add_executable(	${PROJECT} 
-				main.cpp 
-				wire.proto ${PROTO_SRCS} ${PROTO_HDRS})
+				${sources} 
+				${headers}
+				wire.proto ${PROTO_SRCS} ${PROTO_HDRS} )
 
 target_link_libraries(	${PROJECT} 
-						${PROTOBUF_LIBRARIES} )
+						${PROTOBUF_LIBRARIES}
+						${Boost_log_LIBRARY} )
+
+#	client library
+
+
+#	tests
