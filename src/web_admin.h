@@ -17,11 +17,13 @@ typedef http_server_type::chunk_type http_chunk_type;
 
 class Config;
 
-class WebSvc : public http_server_type
+class WebSvc :
+   public http_server_type
 {
    Config& _cfg;
 
    void respond_to_request(http_connection::weak_pointer weak_ptr);
+
 public:
    WebSvc(boost::asio::io_service& io, Config& cfg);
 };

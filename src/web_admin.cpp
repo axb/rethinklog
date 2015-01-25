@@ -1,4 +1,7 @@
 #include "web_admin.h"
+#include <fstream>
+#include <streambuf>
+#include <boost/algorithm/string.hpp>
 
 WebSvc::WebSvc(boost::asio::io_service & io, Config & cfg)
    : _cfg(cfg), http_server_type(io) {
@@ -57,14 +60,16 @@ WebSvc::WebSvc(boost::asio::io_service & io, Config & cfg)
    boost::system::error_code error(accept_connections(8080));
    if (error) {
       std::cerr << "Error: " << error.message() << std::endl;
+   } else {
+      std::cout << "web admin - accepting at port 8080" << std::endl;
    }
 }
 
 void WebSvc::respond_to_request(http_connection::weak_pointer weak_ptr) {
-   /// A string to send in responses.
+   /// A string to send in default responses.
    static const std::string response_body(std::string("<html>\r\n")
                                           + std::string("<head><title>Accepted</title></head>\r\n")
-                                          + std::string("<body><h1>200 Accepted</h1></body>\r\n")
+                                          + std::string("<body><h1>200 - Accepted</h1></body>\r\n")
                                           + std::string("</html>\r\n"));
 
    http_connection::shared_pointer connection(weak_ptr.lock());
@@ -78,23 +83,44 @@ void WebSvc::respond_to_request(http_connection::weak_pointer weak_ptr) {
       response.add_date_header();
 
       //
-      // TODO: dispatch request by Uri
+      // dispatch request by Uri
       //
-      if (request.uri() == "/hello") {
-         if ((request.method() == "GET") || (request.method() == "PUT"))
-            response.set_status(via::http::response_status::code::OK);
-         else {
-            response.set_status(via::http::response_status::code::METHOD_NOT_ALLOWED);
-            response.add_header(via::http::header_field::id::ALLOW, "GET, PUT");
+      if ((request.method() != "GET")) {
+         response.set_status(via::http::response_status::code::METHOD_NOT_ALLOWED);
+         response.add_header(via::http::header_field::id::ALLOW, "GET");
+         connection->send(response);
+      } else {
+         response.set_status(via::http::response_status::code::OK);
+
+         std::vector<std::string> path;
+         std::string uri = request.uri();
+         boost::trim_if(uri, boost::is_any_of("/"));
+         if (uri.size()) boost::split(path, uri, boost::is_any_of("/"), boost::token_compress_on);
+
+         // serve SPA files
+         if (uri == ""
+             || uri == "js/bootstrap.min.js"
+             || uri == "css/bootstrap.min.css"
+             || uri == "css/styles.css") {
+
+            if (uri == "") uri = "index.html";
+
+            std::string content_type("text/html");
+            if (uri.rfind(".css") != std::string::npos) content_type = "text/css";
+            if (uri.rfind(".js") != std::string::npos)  content_type = "text/javascript";
+            response.add_header(via::http::header_field::id::CONTENT_TYPE, content_type); // !!!! цуко важно !!!
+
+            // read the file from app dir, 'admin' subdir
+            std::ifstream t("./admin/" + uri);
+            std::stringstream buffer;
+            buffer << t.rdbuf();
+            connection->send(response, buffer.str());
+         } else
+            // serve API
+         {
+            connection->send(response, response_body);
          }
       }
-
-      // send out reply
-      if ((request.method() == "GET") &&
-          (response.status() == static_cast<int>(via::http::response_status::code::OK)))
-          connection->send(response, response_body);
-      else
-         connection->send(response);
    } else
       std::cerr << "Failed to lock http_connection::weak_pointer" << std::endl;
 }
