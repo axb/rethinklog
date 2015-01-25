@@ -4,44 +4,57 @@
 //    config 
 //    data directory
 //
-//    web ui
-//    pub|sub
-//    reader
-//    writer
-//    bridge
-//    producer - functionality to turn on/off
+//    functionality:
+//       web ui
+//       writer
+//       reader
+//       subscribe 
+//       bridge
 //
 ////////////////////////////////////////////////////
-#include <conio.h>
 
-#include "broker.h"
 #include "storage.h"
-#include "zmq_transport.h"
 #include "writer.h"
-#include "reader.h"
-#include "pubsub.h"
+#include "web_admin.h"
+#include <boost/thread.hpp>
 
 int main(int argc, char *argv[]) {
 
-   // TODO: setup logging
+   /// TODO: setup logging
 
-   Broker broker;
+   Config cfg(argc, argv);
    {
-      // start services
-      Storage stg(broker, argc, argv);
-      ZmqTransport net(broker, stg.config());
-      WriteSvc wrt(broker, stg);
-      ReadSvc rdr(broker, stg);
-      PubSubSvc pubsub(broker);
+      //
+      // task queue
+      //
+      boost::asio::io_service io;
 
-      // TODO: replication, admin, local tasks, bridge, producer
+      // Ctrl^C and kill
+      boost::asio::signal_set sigs(io, SIGINT, SIGTERM);
+      sigs.async_wait([&](const boost::system::error_code& error, int signal_number) {
+         if (!error) {
+            std::cout << "Ctrl^C invoked." << std::endl << "Shutting down the system." << std::endl;
+            io.stop();
+         }
+      });
 
-      broker.start(stg.config().nthreads());
+      //
+      // services
+      /// TODO: replication, local tasks, bridge, producer
+      //
+      Storage  stg(io, cfg);
+      WriteSvc wrt(io, cfg, stg);
+      WebSvc   web(io, cfg);
 
-      // simple wait
-      _getch();
+      // 
+      // events' processing
+      //
+      boost::thread_group tg;
+      for (int i = 0; i < boost::thread::hardware_concurrency(); ++i ) {
+         tg.create_thread([&io]() { io.run(); });
+      }
+      tg.join_all();
    }
-   broker.stop();
 
    return 0;
 }

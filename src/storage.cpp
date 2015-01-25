@@ -30,13 +30,15 @@ std::string Config::serialize() {
    return std::string();
 }
 
-Storage::Storage(Broker & bk, int argc, char * argv[])
-   : _config(argc, argv) {
-   // setup data dir
-}
+Storage::Storage(boost::asio::io_service & io, Config & cfg)
+   : _config(cfg), _io(io) {}
 
 Config & Storage::config() {
    return _config;
+}
+
+std::function<void()> Storage::writeTask() {
+   return std::function<void()>();
 }
 
 Stripe * Storage::stripe(std::string topic_, int part_) {

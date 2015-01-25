@@ -21,3 +21,5 @@
 /src/ZERO_CHECK.vcxproj.filters
 /src/wire.pb.cc
 /src/wire.pb.h
+*.suo
+*.cache

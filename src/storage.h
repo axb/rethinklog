@@ -1,14 +1,44 @@
 #pragma once
 
 #include <string>
+#include <functional>
+#include <boost/asio.hpp>
 
-class Broker;
-class Stripe;
-
-/*
-   Disk related defines and operations
-*/
-
+///////////////////////////////////////////////////////////////////////////////////
+//
+// json config
+//
+///////////////////////////////////////////////////////////////////////////////////
+// Cluster blueprint
+// [ data_center {
+//       name : 
+// } ]
+//
+// [ node {
+//       name
+//       data_center
+//       client interface : { host, port}
+//       cluster interface: { host, port }
+//       admin interface: { host, port } 
+// } ]
+//
+//
+///////////////////////////////////////////////////////////////////////////////////
+// Stripes & topics configuration
+// [ topic { 
+//    name
+//    partitioning_algo : ? may be a part of client application logic ?
+//    SLA :
+//    housekeeping : 
+//    [ stripe {
+//       id : 
+//       primary : node 
+//       secondary : [ node, ]
+//       }
+//    ]
+// } ]
+//
+///////////////////////////////////////////////////////////////////////////////////
 
 class Config
 {
@@ -22,38 +52,6 @@ public:
    std::string dataDir() const;
    int nthreads() const;
 
-   //
-   // Cluster blueprint
-   // [ data_center {
-   //       name : 
-   // } ]
-   //
-   // [ node {
-   //       name
-   //       data_center
-   //       client interface : { host, port}
-   //       cluster interface: { host, port }
-   //       admin interface: { host, port } 
-   // } ]
-   //
-
-   //
-   // Stripes configuration
-   // [ topic { 
-   //    name
-   //    partitioning_algo : ? may be a part of client application logic ?
-   //    SLA :
-   //    housekeeping : 
-   //    [ stripe {
-   //       id : 
-   //       primary : node 
-   //       secondary : [ node ]
-   //       }
-   //    ]
-   // } ]
-   //
-
-
    // 
    void build(const std::string& src_);
    std::string serialize();
@@ -61,31 +59,48 @@ public:
    // 
 };
 
+///////////////////////////////////////////////////////////////////////////////////
+//
+// Disk based storage manager
+//
+///////////////////////////////////////////////////////////////////////////////////
+class Stripe;
+
 class Storage
 {
-   Config _config;
-public:
-   Storage(Broker& bk, int argc, char *argv[]);
-
-   Config& config();
+   boost::asio::io_service& _io;
+   Config& _config;
 
    //
    Stripe* stripe(std::string topic_, int part_);
 
-   // 
+public:
+   Storage( boost::asio::io_service& io, Config& cfg );
+
+   Config& config();
+
+   //
+   // 'write task' builder
+   //
+   std::function<void ()> writeTask();
+
    void housekeeping();
 
    // when finishing by ctrl-c
    void abort();
 };
 
+///////////////////////////////////////////////////////////////////////////////////
+//
+// File based storage
+//
+///////////////////////////////////////////////////////////////////////////////////
 class Stripe
 {
+
 public:
    Stripe(std::string topic_, int part_, Config& cfg_);
 
 
    void append();
-
-
 };
