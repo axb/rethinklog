@@ -23,3 +23,5 @@
 /src/wire.pb.h
 *.suo
 *.cache
+/src/Win32/Debug/ZERO_CHECK
+/src/x64/Debug
