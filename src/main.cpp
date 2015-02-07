@@ -20,7 +20,7 @@
 
 int main(int argc, char *argv[]) {
 
-   /// TODO: setup logging
+   // TODO: setup logging
 
    Config cfg(argc, argv);
    {
@@ -34,16 +34,17 @@ int main(int argc, char *argv[]) {
       sigs.async_wait([&](const boost::system::error_code& error, int signal_number) {
          if (!error) {
             std::cout << "Ctrl^C invoked." << std::endl << "Shutting down the system." << std::endl;
+            // TODO shutdown services
             io.stop();
          }
       });
 
       //
       // services
-      /// TODO: replication, local tasks, bridge, producer
+      // TODO: replication, local tasks, bridge, producer
       //
       Storage  stg(io, cfg);
-      WriteSvc wrt(io, cfg, stg);
+      MasterWriteSvc wrt(io, cfg, stg);
       WebSvc   web(io, cfg);
 
       // 

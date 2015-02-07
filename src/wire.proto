@@ -4,12 +4,13 @@ package wire;
 
 
 // publish
-//	topic
-//	partition
-//	key
-//	data
-// reply returns offset
+//	   topic
+//	   partition
+//	   key
+//	   data
+//    reply returns offset
 // can be processed only by master
+
 
 // publish batch
 

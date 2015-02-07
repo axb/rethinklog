@@ -61,19 +61,21 @@ WebSvc::WebSvc(boost::asio::io_service & io, Config & cfg)
    if (error) {
       std::cerr << "Error: " << error.message() << std::endl;
    } else {
-      std::cout << "web admin - accepting at port 8080" << std::endl;
+      std::cout << "Web admin - accepting at port 8080" << std::endl;
    }
 }
 
 void WebSvc::respond_to_request(http_connection::weak_pointer weak_ptr) {
-   /// A string to send in default responses.
+   // A string to send in default responses.
    static const std::string response_body(std::string("<html>\r\n")
                                           + std::string("<head><title>Accepted</title></head>\r\n")
                                           + std::string("<body><h1>200 - Accepted</h1></body>\r\n")
                                           + std::string("</html>\r\n"));
 
    http_connection::shared_pointer connection(weak_ptr.lock());
-   if (connection) {
+   if (!connection) {
+      std::cerr << "Failed to lock http_connection::weak_pointer" << std::endl;
+   } else {
       // Get the last request sent on this connection.
       via::http::rx_request const& request(connection->request());
 
@@ -94,10 +96,12 @@ void WebSvc::respond_to_request(http_connection::weak_pointer weak_ptr) {
 
          std::vector<std::string> path;
          std::string uri = request.uri();
-         boost::trim_if(uri, boost::is_any_of("/"));
+         boost::trim_if(uri, boost::is_any_of("/")); boost::to_lower(uri);
          if (uri.size()) boost::split(path, uri, boost::is_any_of("/"), boost::token_compress_on);
 
+         //
          // serve SPA files
+         //
          if (uri == ""
              || uri == "js/bootstrap.min.js"
              || uri == "css/bootstrap.min.css"
@@ -108,7 +112,7 @@ void WebSvc::respond_to_request(http_connection::weak_pointer weak_ptr) {
             std::string content_type("text/html");
             if (uri.rfind(".css") != std::string::npos) content_type = "text/css";
             if (uri.rfind(".js") != std::string::npos)  content_type = "text/javascript";
-            response.add_header(via::http::header_field::id::CONTENT_TYPE, content_type); // !!!! цуко важно !!!
+            response.add_header(via::http::header_field::id::CONTENT_TYPE, content_type); // !!!! (tsuko) makes a lot of sense !!!
 
             // read the file from app dir, 'admin' subdir
             std::ifstream t("./admin/" + uri);
@@ -116,12 +120,17 @@ void WebSvc::respond_to_request(http_connection::weak_pointer weak_ptr) {
             buffer << t.rdbuf();
             connection->send(response, buffer.str());
          } else
+            //
             // serve API
+            //
+         if (path.size() && path[0] == "api")
          {
+            //
+            // TODO: route request to handlers
+            //
             connection->send(response, response_body);
          }
       }
-   } else
-      std::cerr << "Failed to lock http_connection::weak_pointer" << std::endl;
+   }
 }
 
