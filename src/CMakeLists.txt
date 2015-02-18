@@ -16,7 +16,7 @@ protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS wire.proto)
 #	Boost
 #
 SET(Boost_USE_STATIC_LIBS ON)
-find_package( Boost COMPONENTS log program_options system date_time thread regex chrono filesystem REQUIRED)
+find_package( Boost COMPONENTS log program_options system date_time thread regex chrono filesystem iostreams REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 file(GLOB via  ${CMAKE_CURRENT_SOURCE_DIR}/via/http/*.cpp)

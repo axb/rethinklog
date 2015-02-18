@@ -9,8 +9,8 @@ MasterWriteSvc::MasterWriteSvc(boost::asio::io_service & io, Config & cfg, Repli
 
 void MasterWriteSvc::waitNextClient() {
    _acceptor.async_accept(_cliSocket, [this](boost::system::error_code ec) {
-      if (ec) 
-         return;
+      if (ec)
+         return; // shit happened, full stop
 
       std::make_shared<ProducerSession>(_cliSocket, _stg);
       waitNextClient();
@@ -18,7 +18,7 @@ void MasterWriteSvc::waitNextClient() {
 }
 
 ProducerSession::ProducerSession(boost::asio::ip::tcp::socket& s, ReplicatedStorage& stg)
-   : _soc(std::move(s)), _stg( stg ) {
+   : _soc(std::move(s)), _stg(stg) {
    waitNextMsg();
 }
 
@@ -27,13 +27,13 @@ void ProducerSession::waitNextMsg() {
    auto me(shared_from_this()); // passing 'me' to lambda keeps from being destructed
    boost::asio::async_read(_soc, boost::asio::buffer(_currentReq.headerBuf(), Msg::header_len),
                            [this, me](boost::system::error_code ec, std::size_t /*length*/) {
-      if ( ec || !_currentReq.decodeHeader()) 
+      if (ec || !_currentReq.decodeHeader())
          return;
 
       // read body
       boost::asio::async_read(_soc, boost::asio::buffer(_currentReq.bodyBuf(), _currentReq.Header.body_len),
                               [this, me](boost::system::error_code ec, std::size_t /*length*/) {
-         if (ec) 
+         if (ec)
             return;
 
          // make protocol
@@ -42,7 +42,8 @@ void ProducerSession::waitNextMsg() {
             if (!cmd.ParseFromString(_currentReq._wire_body))
                return;
 
-            _stg.publish(cmd.topic(), cmd.partition(), cmd.key(), cmd.data(), cmd.localtime(), [this, me, cmd](uint64_t offset) {
+            _stg.publish(cmd.topic(), cmd.partition(), cmd.key(), cmd.data(), cmd.localtime(),
+                         [this, me, cmd](uint64_t offset) {
                wire::PublishResp resp; resp.set_clientseq(cmd.clientseq()); resp.set_offset(offset);
                if (!offset) resp.set_error("bad things happened");
 

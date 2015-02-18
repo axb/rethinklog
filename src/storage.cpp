@@ -72,15 +72,20 @@ void ReplicatedStorage::abort() {
 }
 
 
-Stripe::Stripe(std::string topic_, uint32_t  part_, Config & cfg_) {
-   _file_name = cfg_.dataDir() + "/" + topic_; /// <todo> +itoa(part_);
-   _file.open(_file_name, std::ios_base::out | std::ios_base::app);
+void Stripe::buildFrame() {
+   // build filename
+
+   // open mapped thingie
+}
+
+Stripe::Stripe(std::string topic_, uint32_t  part_, Config & cfg_) :_lastOffset(1) {
+   /// <todo> read last offset from storage
 }
 
 uint64_t Stripe::append(std::string key, std::string data, std::string localtime) {
-   uint64_t offset = _file.tellp();   /// <todo> filesize
-   if (write(offset, key, data, localtime)) // write to file
-      return offset;
+   ++_lastOffset;
+   if (write(_lastOffset, key, data, localtime))
+      return _lastOffset;
    else
       return 0; // error
 }
@@ -92,15 +97,6 @@ bool Stripe::write(uint64_t offset, std::string key, std::string data, std::stri
    // buildFrame -> checks if new file shall be created
    // opens new if required, does mmap
 
-   // write data
-   if (!_file.is_open()) 
-      _file.open(_file_name, std::ios_base::out | std::ios_base::app);
-   if (_file.is_open()) {
-      _file.write(data.data(), data.size());
-      _file.close();
-   } else {
-      return false;
-   }
    /// <todo> write index
 
    return false;

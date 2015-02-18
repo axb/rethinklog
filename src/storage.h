@@ -6,6 +6,7 @@
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/iostreams/device/mapped_file.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////////
 //
@@ -102,8 +103,9 @@ class Stripe
 {
    uint64_t _lastOffset;
 
-   boost::filesystem::path _file_name;
-   boost::filesystem::ofstream _file;
+   void buildFrame();
+   const uint64_t FILESIZE = 5 * 1024 * 1024; // 5 Mb
+   boost::iostreams::mapped_file_sink  _frame;
 
 public:
    Stripe(std::string topic_, uint32_t  part_, Config& cfg_);
