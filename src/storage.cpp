@@ -30,28 +30,78 @@ std::string Config::serialize() {
    return std::string();
 }
 
-Storage::Storage(boost::asio::io_service & io, Config & cfg)
-   : _config(cfg), _io(io) {}
+ReplicatedStorage::ReplicatedStorage(boost::asio::io_service & io, Config & cfg)
+   : _config(cfg), _io(io) {
+   /// <todo> init stripes & SLAs
 
-Config & Storage::config() {
+}
+
+Config & ReplicatedStorage::config() {
    return _config;
 }
 
-std::function<void()> Storage::writeTask() {
-   return std::function<void()>();
+void ReplicatedStorage::publish(std::string topic, uint32_t partition, std::string key, std::string data, std::string localtime,
+                                std::function< void(uint64_t offset) > whendone_) {
+   uint64_t offset = 0;
+   Stripe* st = stripe(topic, partition);
+   if (!st) {
+      offset = 0;
+   } else {
+      offset = st->append(key, data, localtime);
+
+      /// <todo> replication SLA
+
+   }
+   whendone_(offset);
 }
 
-Stripe * Storage::stripe(std::string topic_, int part_) {
-   return NULL;
+Stripe * ReplicatedStorage::stripe(std::string topic_, uint32_t part_) {
+   auto it = _stripes.find({ topic_, part_ });
+   if (it != _stripes.end())
+      return it->second;
+   /// <todo> check config for auto creation
+   Stripe* res = new Stripe(topic_, part_, _config);
+   _stripes.insert({ { topic_, part_ }, res });
+   return res;
 }
 
-void Storage::housekeeping() {}
+void ReplicatedStorage::housekeeping() {}
 
-void Storage::abort() {
+void ReplicatedStorage::abort() {
    // close all open files
 }
 
 
-Stripe::Stripe(std::string topic_, int part_, Config & cfg_) {}
+Stripe::Stripe(std::string topic_, uint32_t  part_, Config & cfg_) {
+   _file_name = cfg_.dataDir() + "/" + topic_; /// <todo> +itoa(part_);
+   _file.open(_file_name, std::ios_base::out | std::ios_base::app);
+}
 
-void Stripe::append() {}
+uint64_t Stripe::append(std::string key, std::string data, std::string localtime) {
+   uint64_t offset = _file.tellp();   /// <todo> filesize
+   if (write(offset, key, data, localtime)) // write to file
+      return offset;
+   else
+      return 0; // error
+}
+
+bool Stripe::write(uint64_t offset, std::string key, std::string data, std::string localtime) {
+
+   // if frame can handle this -> write to frame
+   // else buildFrame
+   // buildFrame -> checks if new file shall be created
+   // opens new if required, does mmap
+
+   // write data
+   if (!_file.is_open()) 
+      _file.open(_file_name, std::ios_base::out | std::ios_base::app);
+   if (_file.is_open()) {
+      _file.write(data.data(), data.size());
+      _file.close();
+   } else {
+      return false;
+   }
+   /// <todo> write index
+
+   return false;
+}

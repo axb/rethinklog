@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
       // services
       // TODO: replication, local tasks, bridge, producer
       //
-      Storage  stg(io, cfg);
+      ReplicatedStorage  stg(io, cfg);
       MasterWriteSvc wrt(io, cfg, stg);
       WebSvc   web(io, cfg);
 

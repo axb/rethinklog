@@ -1,5 +1,5 @@
 #include "reader.h"
 
-ReadSvc::ReadSvc(Broker & brk_, Storage & stg_)
+ReadSvc::ReadSvc(Broker & brk_, ReplicatedStorage & stg_)
 {
 }

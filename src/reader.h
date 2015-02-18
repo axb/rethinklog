@@ -5,10 +5,10 @@
 */
 
 class Broker;
-class Storage;
+class ReplicatedStorage;
 
 class ReadSvc
 {
 public:
-   ReadSvc(Broker& brk_, Storage& stg_);
+   ReadSvc(Broker& brk_, ReplicatedStorage& stg_);
 };

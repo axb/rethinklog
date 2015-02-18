@@ -2,7 +2,10 @@
 
 #include <string>
 #include <functional>
+#include <map>
 #include <boost/asio.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////////
 //
@@ -66,23 +69,23 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////
 class Stripe;
 
-class Storage
+class ReplicatedStorage
 {
    boost::asio::io_service& _io;
    Config& _config;
 
-   //
-   Stripe* stripe(std::string topic_, int part_);
+   typedef std::pair< std::string, uint32_t > TStripeKey;
+   typedef std::map< TStripeKey, Stripe* > TStripes;
+   TStripes _stripes;
+   Stripe* stripe(std::string topic_, uint32_t part_);
 
 public:
-   Storage( boost::asio::io_service& io, Config& cfg );
+   ReplicatedStorage(boost::asio::io_service& io, Config& cfg);
 
    Config& config();
 
-   //
-   // 'write task' builder
-   //
-   std::function<void ()> writeTask();
+   void publish(std::string topic, uint32_t partition, std::string key, std::string data, std::string localtime,
+                std::function< void(uint64_t offset) > whendone_);
 
    void housekeeping();
 
@@ -97,10 +100,15 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////
 class Stripe
 {
+   uint64_t _lastOffset;
+
+   boost::filesystem::path _file_name;
+   boost::filesystem::ofstream _file;
 
 public:
-   Stripe(std::string topic_, int part_, Config& cfg_);
+   Stripe(std::string topic_, uint32_t  part_, Config& cfg_);
 
+   uint64_t append(std::string key, std::string data, std::string localtime);
 
-   void append();
+   bool write(uint64_t offset, std::string key, std::string data, std::string localtime);
 };
