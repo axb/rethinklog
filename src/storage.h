@@ -47,6 +47,7 @@ class Config
 {
    struct TData;
    TData* _data;
+   std::string _me;
 public:
    Config(int argc, char *argv[]);
    virtual ~Config();

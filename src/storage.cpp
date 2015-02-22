@@ -8,14 +8,29 @@
 namespace fs = boost::filesystem;
 namespace bpt = boost::property_tree;
 
-struct Config::TData : public bpt::ptree {
+struct Config::TData : public bpt::ptree{};
 
-};
+Config::Config(int argc, char * argv[]) : _data( new TData() ) {
+   _me = "localhost";
+   if (argc > 1) 
+      _me = argv[1];
 
-Config::Config(int argc, char * argv[]) : _data (0) {
-   // 
-   _data = new TData();
+   std::string cfn = "rl.config";
+   if (argc > 2)
+      cfn = argv[2];
+   
+   bpt::read_json( cfn, (bpt::ptree&)*_data);
 
+   //
+   // informational output
+   //
+   std::cout 
+      << "config summary ------------" << std::endl
+      << "me : " << _me << std::endl
+      << "data_centers : " << _data->get_child("data_centers").size() << std::endl
+      << "nodes : " << _data->get_child("nodes").size() << std::endl
+      << "topics : " << _data->get_child("topics").size() << std::endl
+      << "---------------------------" << std::endl << std::endl;
 }
 
 Config::~Config() {
@@ -108,7 +123,7 @@ void Stripe::buildFrame() {
    bs::mapped_file_params args;
    args.path = fn.str();
    args.new_file_size = FRAME_FILESIZE;
-   _frame.open( bs::mapped_file_sink(args) );
+   _frame.open(bs::mapped_file_sink(args));
 }
 
 Stripe::Stripe(std::string id_, Config & cfg_) : _cfg(cfg_), _id(id_), _lastOffset(1) {
@@ -126,16 +141,16 @@ uint64_t Stripe::append(std::string key, std::string data, std::string localtime
 bool Stripe::write(uint64_t offset, std::string key, std::string data, std::string localtime) {
    LogEntry le{ offset, key, data, localtime };
 
-   if (!_frame.is_open() || (size_t)_frame.tellp() + le.size() >= FRAME_FILESIZE) 
+   if (!_frame.is_open() || (size_t)_frame.tellp() + le.size() >= FRAME_FILESIZE)
       buildFrame();
-      
+
    _frame << le;
 
    return true;
 }
 
 Stripe::~Stripe() {
-   if (_frame.is_open() ) {
+   if (_frame.is_open()) {
       std::flush(_frame);
       _frame.close();
    }
