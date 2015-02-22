@@ -4,16 +4,16 @@
 #include <functional>
 #include <map>
 #include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/fstream.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
+#include <boost/iostreams/stream.hpp>
+namespace bs = boost::iostreams;
 
 ///////////////////////////////////////////////////////////////////////////////////
 //
 // json config
 //
 ///////////////////////////////////////////////////////////////////////////////////
-// Cluster blueprint
+/// Cluster blueprint
 // [ data_center {
 //       name : 
 // } ]
@@ -28,14 +28,13 @@
 //
 //
 ///////////////////////////////////////////////////////////////////////////////////
-// Stripes & topics configuration
+/// Stripes & topics configuration
 // [ topic { 
 //    name
-//    partitioning_algo : ? may be a part of client application logic ?
-//    SLA :
+//    SLA : 
 //    housekeeping : 
 //    [ stripe {
-//       id : 
+//       id :   string, unique across all topics
 //       primary : node 
 //       secondary : [ node, ]
 //       }
@@ -51,7 +50,7 @@ class Config
 public:
    Config(int argc, char *argv[]);
 
-   // local node 
+   /// local node 
    std::string me();
    std::string dataDir() const;
    int nthreads() const;
@@ -65,27 +64,54 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////////
 //
+// File based storage
+//    Filename is like "<log_dir>/<stripe_id>/<secs_from_epoch>_<num>.log"
+//
+///////////////////////////////////////////////////////////////////////////////////
+class Stripe : public std::enable_shared_from_this< Stripe >
+{
+   std::string _id;
+   Config& _cfg;
+
+   uint64_t _lastOffset;
+
+   void buildFrame();
+   const uint64_t FRAME_FILESIZE = 64 * 1024 * 1024; 
+   bs::stream<bs::mapped_file_sink>  _frame;
+
+   Stripe(std::string id_, Config& cfg_);
+public:
+   typedef std::shared_ptr<Stripe> pointer_type;
+   static pointer_type create(std::string id_, Config& cfg_) { return pointer_type{ new Stripe(id_, cfg_) }; }
+
+   uint64_t append(std::string key, std::string data, std::string localtime);
+
+   bool write(uint64_t offset, std::string key, std::string data, std::string localtime);
+
+   virtual ~Stripe();
+};
+
+///////////////////////////////////////////////////////////////////////////////////
+//
 // Disk based storage manager
 //
 ///////////////////////////////////////////////////////////////////////////////////
-class Stripe;
 
 class ReplicatedStorage
 {
    boost::asio::io_service& _io;
-   Config& _config;
+   Config& _cfg;
 
-   typedef std::pair< std::string, uint32_t > TStripeKey;
-   typedef std::map< TStripeKey, Stripe* > TStripes;
+   typedef std::map< std::string, Stripe::pointer_type > TStripes;
    TStripes _stripes;
-   Stripe* stripe(std::string topic_, uint32_t part_);
+   Stripe::pointer_type stripe(std::string stripeId);
 
 public:
    ReplicatedStorage(boost::asio::io_service& io, Config& cfg);
 
    Config& config();
 
-   void publish(std::string topic, uint32_t partition, std::string key, std::string data, std::string localtime,
+   void publish(std::string stripe, std::string key, std::string data, std::string localtime,
                 std::function< void(uint64_t offset) > whendone_);
 
    void housekeeping();
@@ -94,23 +120,3 @@ public:
    void abort();
 };
 
-///////////////////////////////////////////////////////////////////////////////////
-//
-// File based storage
-//
-///////////////////////////////////////////////////////////////////////////////////
-class Stripe
-{
-   uint64_t _lastOffset;
-
-   void buildFrame();
-   const uint64_t FILESIZE = 5 * 1024 * 1024; // 5 Mb
-   boost::iostreams::mapped_file_sink  _frame;
-
-public:
-   Stripe(std::string topic_, uint32_t  part_, Config& cfg_);
-
-   uint64_t append(std::string key, std::string data, std::string localtime);
-
-   bool write(uint64_t offset, std::string key, std::string data, std::string localtime);
-};

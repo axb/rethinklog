@@ -25,3 +25,9 @@
 *.cache
 /src/Win32/Debug/ZERO_CHECK
 /src/x64/Debug
+/src/Release
+/src/rethinklog.dir/Release
+/src/x64/Release/ZERO_CHECK
+/src/_logz/boo-ga-ga-000000111111
+*.exe
+/src/rethinklog.vcxproj.user

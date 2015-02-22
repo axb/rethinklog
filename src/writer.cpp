@@ -36,15 +36,15 @@ void ProducerSession::waitNextMsg() {
          if (ec)
             return;
 
-         // make protocol
+         /// make protocol
          {
-            wire::PublishCmd cmd;
+            wire::PublishReq cmd;
             if (!cmd.ParseFromString(_currentReq._wire_body))
                return;
 
-            _stg.publish(cmd.topic(), cmd.partition(), cmd.key(), cmd.data(), cmd.localtime(),
+            _stg.publish(cmd.stripe(), cmd.key(), cmd.data(), cmd.localtime(),
                          [this, me, cmd](uint64_t offset) {
-               wire::PublishResp resp; resp.set_clientseq(cmd.clientseq()); resp.set_offset(offset);
+               wire::PublishRes resp; resp.set_clientseq(cmd.clientseq()); resp.set_offset(offset);
                if (!offset) resp.set_error("bad things happened");
 
                Msg wr; wr.pack(resp);

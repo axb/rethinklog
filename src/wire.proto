@@ -1,7 +1,20 @@
 package wire;
 
 // get client configuration
+message PublisherConfigReq {
+   required string user = 1;
+   required string auth = 2;
+}
 
+message PublisherConfigRes {
+   optional string token = 1;
+
+   message TopicDesc {
+      required string topic = 1;
+      repeated string stripes = 2;
+   }
+   repeated TopicDesc topics = 3;
+}
 
 // publish
 //	   topic
@@ -9,17 +22,16 @@ package wire;
 //	   key
 //	   data
 //    reply returns offset
-// can be processed only by master
-message PublishCmd {
+// can be processed only by master node
+message PublishReq {
    required uint64 clientSeq = 1;
-   required string topic = 2;
-   required uint32 partition = 3;
+   required string stripe = 2;
    optional bytes key = 4;
    required bytes data = 5;
    optional string localTime = 6;
 }
 
-message PublishResp {
+message PublishRes {
    required uint64 clientSeq = 1;
    required uint64 offset = 2;
    optional string error = 3;
