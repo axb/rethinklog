@@ -55,13 +55,12 @@ WebSvc::WebSvc(boost::asio::io_service & io, Config & cfg)
 
    //
    // start accepting http connections on the given port
-   // FIXME: get port from config
    //
-   boost::system::error_code error(accept_connections(8080));
+   boost::system::error_code error(accept_connections( _cfg.adminIntfPort() ));
    if (error) {
       std::cerr << "Error: " << error.message() << std::endl;
    } else {
-      std::cout << "Web admin - accepting at port 8080" << std::endl;
+      std::cout << "Web admin - accepting at port " << _cfg.adminIntfPort() << std::endl;
    }
 }
 

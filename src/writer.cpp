@@ -3,12 +3,13 @@
 
 MasterWriteSvc::MasterWriteSvc(boost::asio::io_service & io, Config & cfg, ReplicatedStorage & stg_)
    : _io(io), _cfg(cfg), _stg(stg_), _cliSocket(io),
-   _acceptor(io, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), 8081)) { //< TODO read port (all endpoint) from config      
+   _acceptor(io, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), _cfg.clientIntfPort() )) { 
    waitNextClient();
 }
 
 void MasterWriteSvc::waitNextClient() {
-   _acceptor.async_accept(_cliSocket, [this](boost::system::error_code ec) {
+   _acceptor.async_accept(_cliSocket, 
+                          [this](boost::system::error_code ec) {
       if (ec)
          return; // shit happened, full stop
 
@@ -24,7 +25,7 @@ ProducerSession::ProducerSession(boost::asio::ip::tcp::socket& s, ReplicatedStor
 
 void ProducerSession::waitNextMsg() {
    _currentReq.clear();
-   auto me(shared_from_this()); // passing 'me' to lambda keeps from being destructed
+   auto me(shared_from_this()); // passing 'me' to lambda keeps from being destroyed ahead of time
    boost::asio::async_read(_soc, boost::asio::buffer(_currentReq.headerBuf(), Msg::header_len),
                            [this, me](boost::system::error_code ec, std::size_t /*length*/) {
       if (ec || !_currentReq.decodeHeader())
@@ -36,20 +37,17 @@ void ProducerSession::waitNextMsg() {
          if (ec)
             return;
 
-         /// make protocol
+         // make protocol
          {
-            wire::PublishReq cmd;
+            wire::PublishReq cmd; /// <todo> wrap all protocol into single command
             if (!cmd.ParseFromString(_currentReq._wire_body))
                return;
 
-            _stg.publish(cmd.stripe(), cmd.key(), cmd.data(), cmd.localtime(),
-                         [this, me, cmd](uint64_t offset) {
+            _stg.publish(cmd.stripe(), cmd.key(), cmd.data(), cmd.localtime(), [this, me, cmd](uint64_t offset) {
                wire::PublishRes resp; resp.set_clientseq(cmd.clientseq()); resp.set_offset(offset);
                if (!offset) resp.set_error("bad things happened");
-
                Msg wr; wr.pack(resp);
-               boost::asio::async_write(_soc, boost::asio::buffer(wr._wire_send),
-                                        [this](boost::system::error_code ec, std::size_t done) {
+               boost::asio::async_write(_soc, boost::asio::buffer(wr._wire_send), [this](boost::system::error_code ec, std::size_t done) { 
                   /// <todo> react if smth went wrong
                });
             });

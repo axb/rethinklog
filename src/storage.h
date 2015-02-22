@@ -4,64 +4,112 @@
 #include <functional>
 #include <map>
 #include <boost/asio.hpp>
-#include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/iostreams/stream.hpp>
+#include <boost/iostreams/device/mapped_file.hpp>
+#include <boost/property_tree/ptree.hpp>
+
 namespace bs = boost::iostreams;
+namespace bpt = boost::property_tree;
 
 ///////////////////////////////////////////////////////////////////////////////////
 //
 // json config
-//
-///////////////////////////////////////////////////////////////////////////////////
-/// Cluster blueprint
-// [ data_center {
-//       name : 
-// } ]
-//
-// [ node {
-//       name
-//       data_center
-//       client interface : { host, port}
-//       cluster interface: { host, port }
-//       admin interface: { host, port } 
-// } ]
+//    
+//     Cluster blueprint
 //
 //
-///////////////////////////////////////////////////////////////////////////////////
-/// Stripes & topics configuration
-// [ topic { 
-//    name
-//    SLA : 
-//    housekeeping : 
-//    [ stripe {
-//       id :   string, unique across all topics
-//       primary : node 
-//       secondary : [ node, ]
-//       }
-//    ]
-// } ]
+//{
+//   "data_centers" :
+//   [
+//      { "name" : "PDC"}
+//   ],
+//
+//   "nodes" :
+//   [
+//      {
+//         "name" : "node1",
+//         "data_center" : "PDC",
+//         "client_interface" : { "bind":"all", "port" : 8081 },
+//         "cluster_interface" : { "bind":"all", "port" : 8082 },
+//         "admin_interface" : { "bind":"all", "port" : 8083 }
+//      }
+//   ], // nodes
+//
+//         // Stripes & topics configuration
+//   "topics":
+//   [
+//      {
+//         "name":"test1",
+//         "SLA" : "1-wait",
+//         "housekeeping" : "key",
+//         "stripes" :
+//         [
+//            {
+//               "id" : "test1_115",
+//               "primary" : "node1",
+//               "replicas" : "node2, node3"
+//            },
+//            {
+//               "id" : "test1_116",
+//               "primary" : "node2",
+//               "replicas" : "node2, node3"
+//            }
+//         ]
+//      },
+//      {
+//         "name":"test2",
+//         "SLA" : "no-wait",
+//         "housekeeping" : "key",
+//         "stripes" :
+//         [
+//            {
+//               "id" : "test2_1",
+//               "primary" : "node1",
+//               "replicas" : "node3"
+//            }
+//         ]
+//      }
+//   ] // topics
+//}
 //
 ///////////////////////////////////////////////////////////////////////////////////
 
-class Config
+class Config : public bpt::ptree
 {
-   struct TData;
-   TData* _data;
    std::string _me;
 public:
    Config(int argc, char *argv[]);
    virtual ~Config();
 
-   /// local node 
+   // local node 
    std::string me();
    std::string dataDir() const;
-   int nthreads() const;
 
-   // 
-   void build(const std::string& src_);
-   std::string serialize();
+   // my network services end-points
+   uint16_t clientIntfPort() const;
+   uint16_t clusterIntfPort() const;
+   uint16_t adminIntfPort() const;
 
-   // 
+   // my master stripes
+   struct StripeConfig {
+      std::string 
+         id, 
+         primary, 
+         replicas;
+   };
+   typedef std::list< StripeConfig > TStripeConfigs;
+   TStripeConfigs masterStripes() const;
+
+   // my replica stripes
+   TStripeConfigs replicaStripes() const;
+
+   // cluster interface by node name
+   struct RemoteEndpoint {
+      std::string host;
+      uint16_t    port;
+   };
+   RemoteEndpoint remoteClusterIntf(std::string node);
+
 };
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -86,8 +134,10 @@ public:
    typedef std::shared_ptr<Stripe> pointer_type;
    static pointer_type create(std::string id_, Config& cfg_) { return pointer_type{ new Stripe(id_, cfg_) }; }
 
+   // for primary nodes
    uint64_t append(std::string key, std::string data, std::string localtime);
 
+   // for replicas
    bool write(uint64_t offset, std::string key, std::string data, std::string localtime);
 
    virtual ~Stripe();

@@ -9,10 +9,9 @@ class ReplicatedStorage;
 
 
 /*
-   Write protocol & pipeline
+   Client protocol & pipeline
 */
-class ProducerSession :
-   public std::enable_shared_from_this<ProducerSession>
+class ProducerSession : public std::enable_shared_from_this<ProducerSession>
 {
    boost::asio::ip::tcp::socket _soc;
    ReplicatedStorage& _stg;

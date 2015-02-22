@@ -22,38 +22,38 @@
 #include <conio.h>
 
 int main(int argc, char *argv[]) {
-   // TODO: setup logging
+   std::cout << "RethinkLog - fucking revolution (version 100500)" << std::endl;
 
    Config cfg(argc, argv);
 
    /// tests
-   //std::cout << "RethinkLog - fucking revolution (version 100500)" << std::endl << "press any key to start..." << std::endl;
-   //_getch();
-   //{
-   //   auto start = std::chrono::high_resolution_clock::now();
-   //
-   //   auto st = Stripe::create("boo-ga-ga-000000111111", cfg);
-   //   int x = 0;
-   //   for (; x < 10 * 1000 * 1000; ++x) {
-   //      st->append("dodood", "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri"
-   //                 "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-   //                 "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-   //                 "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-   //                 "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-   //                 "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri", "");
-   //      if (x % 50000 == 0)
-   //         std::cout << "|";
-   //   }
-   //   auto end = std::chrono::high_resolution_clock::now();
-   //   std::chrono::duration<double> diff = end - start;
-   //   std::cout << std::endl
-   //      << "made : " << x << " records, " << std::endl
-   //      << "took : " << diff.count() << " seconds" << std::endl
-   //      << "perf : " << x / diff.count() << " recs/sec " << std::endl
-   //      << "press any key to exit...";
-   //}
-   //_getch();
-   //return 0;
+   std::cout << "press any key to start..." << std::endl;
+   _getch();
+   {
+      auto start = std::chrono::high_resolution_clock::now();
+   
+      auto st = Stripe::create("boo-ga-ga-000000111111", cfg);
+      int x = 0;
+      for (; x < 10 * 1000 * 1000; ++x) {
+         st->append("dodood", "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri"
+                    "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+                    "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+                    "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+                    "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+                    "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri", "");
+         if (x % 50000 == 0)
+            std::cout << "|";
+      }
+      auto end = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> diff = end - start;
+      std::cout << std::endl
+         << "made : " << x << " records, " << std::endl
+         << "took : " << diff.count() << " seconds" << std::endl
+         << "perf : " << x / diff.count() << " recs/sec " << std::endl
+         << "press any key to exit...";
+   }
+   _getch();
+   return 0;
    /// } end tests
 
    {
