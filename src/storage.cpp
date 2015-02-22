@@ -6,14 +6,20 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
+namespace bpt = boost::property_tree;
 
-struct Config::TData : public boost::property_tree::ptree{
+struct Config::TData : public bpt::ptree {
 
 };
 
-Config::Config(int argc, char * argv[]) {
+Config::Config(int argc, char * argv[]) : _data (0) {
    // 
+   _data = new TData();
 
+}
+
+Config::~Config() {
+   delete _data;
 }
 
 std::string Config::me() {

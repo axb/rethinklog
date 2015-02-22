@@ -18,14 +18,12 @@
 #include <conio.h>
 
 int main(int argc, char *argv[]) {
-
-
    // TODO: setup logging
 
    Config cfg(argc, argv);
 
    /// tests
-   std::cout << "Rethinklog --- press anykey to start" << std::endl;
+   std::cout << "RethinkLog - fucking revolution (version 100500)" << std::endl << "press any key to start..." << std::endl;
    _getch();
    {
       auto start = std::chrono::high_resolution_clock::now();
@@ -39,15 +37,16 @@ int main(int argc, char *argv[]) {
                     "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
                     "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
                     "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri", "");
-         if (x % 5000 == 0)
-            std::cout << ".";
+         if (x % 50000 == 0)
+            std::cout << "|";
       }
       auto end = std::chrono::high_resolution_clock::now();
       std::chrono::duration<double> diff = end - start;
       std::cout << std::endl
          << "made : " << x << " records, " << std::endl
          << "took : " << diff.count() << " seconds" << std::endl
-         << "perf : " << x / diff.count() << " recs/sec " << std::endl;
+         << "perf : " << x / diff.count() << " recs/sec " << std::endl
+         << "press any key to exit...";
    }
    _getch();
    return 0;
@@ -73,9 +72,9 @@ int main(int argc, char *argv[]) {
       // services
       // TODO: replication, local tasks, bridge, producer
       //
-      ReplicatedStorage  stg(io, cfg);
-      MasterWriteSvc wrt(io, cfg, stg);
-      WebSvc   web(io, cfg);
+      ReplicatedStorage stg(io, cfg);
+      MasterWriteSvc    wrt(io, cfg, stg);
+      WebSvc            web(io, cfg);
 
       // 
       // events' processing

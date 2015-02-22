@@ -49,6 +49,7 @@ class Config
    TData* _data;
 public:
    Config(int argc, char *argv[]);
+   virtual ~Config();
 
    /// local node 
    std::string me();
@@ -76,7 +77,7 @@ class Stripe : public std::enable_shared_from_this< Stripe >
    uint64_t _lastOffset;
 
    void buildFrame();
-   const uint64_t FRAME_FILESIZE = 64 * 1024 * 1024; 
+   static const uint64_t FRAME_FILESIZE = 64 * 1024 * 1024; // 64 Mb
    bs::stream<bs::mapped_file_sink>  _frame;
 
    Stripe(std::string id_, Config& cfg_);
