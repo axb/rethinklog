@@ -14,7 +14,8 @@
 ////////////////////////////////////////////////////
 
 #include "storage.h"
-#include "writer.h"
+#include "client_api.h"
+#include "cluster_api.h"
 #include "web_admin.h"
 #include <boost/thread.hpp>
 
@@ -27,8 +28,7 @@ int main(int argc, char *argv[]) {
    Config cfg(argc, argv);
 
    /// tests
-   std::cout << "press any key to start..." << std::endl;
-   _getch();
+   std::cout << "=== tests mode ===" << std::endl;
    {
       auto start = std::chrono::high_resolution_clock::now();
    
@@ -49,10 +49,8 @@ int main(int argc, char *argv[]) {
       std::cout << std::endl
          << "made : " << x << " records, " << std::endl
          << "took : " << diff.count() << " seconds" << std::endl
-         << "perf : " << x / diff.count() << " recs/sec " << std::endl
-         << "press any key to exit...";
+         << "perf : " << x / diff.count() << " recs/sec " << std::endl;
    }
-   _getch();
    return 0;
    /// } end tests
 
@@ -77,7 +75,7 @@ int main(int argc, char *argv[]) {
       // TODO: replication, local tasks, bridge, producer
       //
       ReplicatedStorage stg(io, cfg);
-      MasterWriteSvc    wrt(io, cfg, stg);
+      ClientAPISvc    wrt(io, cfg, stg);
       WebSvc            web(io, cfg);
 
       // 

@@ -37,9 +37,6 @@ message PublishRes {
    optional string error = 3;
 }
 
-// publish batch
-
-
 // subscribe
 //	selector : topic, partition, keyset
 // can be processed by any replica
@@ -50,4 +47,30 @@ message PublishRes {
 //	selector : topic, partition, keyset
 //	starting from date|offset
 //	ending date|offset
+
+///////////////////////////////////////////////////////////////////////////////////
+//
+// client protocol
+//
+///////////////////////////////////////////////////////////////////////////////////
+message APIReq {
+   optional PublisherConfigReq publisherConfigReq = 1;
+   repeated PublishReq publishReq = 2;
+}
+
+message APIRes {
+   optional PublisherConfigRes publisherConfigRes = 1;
+   repeated PublishRes publishRes = 2;
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+//
+// cluster protocol
+//
+///////////////////////////////////////////////////////////////////////////////////
+message ClusterReq {
+}
+
+message ClusterRes {
+}
 

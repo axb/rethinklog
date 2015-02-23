@@ -6,7 +6,7 @@ project(${PROJECT})
 #
 # libraries
 #
-
+   
 #	protobuf
 #
 find_package(Protobuf REQUIRED)  
@@ -20,7 +20,7 @@ find_package( Boost COMPONENTS log program_options system date_time thread regex
 include_directories(${Boost_INCLUDE_DIRS})
 
 file(GLOB via  ${CMAKE_CURRENT_SOURCE_DIR}/via/http/*.cpp)      
-source_group("via" FILES ${via} )   
+source_group("via" FILES ${via} )    
 
 
 #
