@@ -40,7 +40,7 @@ void Storage::publish(std::string stripe_, std::string key, std::string data, st
 	whendone_(offset);
 }
 
-Stripe::pointer_type Storage::stripe(std::string stripe) {
+Stripe::TPtr Storage::stripe(std::string stripe) {
 	auto it = _stripes.find(stripe);
 	if (it != _stripes.end())
 		return it->second;
@@ -50,7 +50,8 @@ Stripe::pointer_type Storage::stripe(std::string stripe) {
 	return res;
 }
 
-void Storage::housekeeping() {}
+void Storage::housekeeping() {
+}
 
 void Storage::abort() {
 	// close all open files

@@ -9,7 +9,7 @@ project(${PROJECT})
    
 #	protobuf
 #
-find_package(Protobuf REQUIRED)  
+find_package(Protobuf REQUIRED)   
 include_directories(${PROTOBUF_INCLUDE_DIRS}) 
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS wire.proto)
 

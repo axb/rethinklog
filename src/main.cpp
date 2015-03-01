@@ -22,27 +22,27 @@
 #include <chrono>
 #include <conio.h>
 
-int main(int argc, char *argv[]) {
+int main( int argc, char *argv[] ) {
    std::cout << "RethinkLog - fucking revolution (version 100500)" << std::endl;
 
-   Config cfg(argc, argv);
+   Config cfg( argc, argv );
 
-   if (cfg.me() == "test") {
+   if ( cfg.me() == "test" ) {
       /// tests
       std::cout << "=== tests mode ===" << std::endl;
       {
          auto start = std::chrono::high_resolution_clock::now();
 
-         auto st = Stripe::writer("boo-ga-ga-000000111111", cfg);
+         auto st = Stripe::writer( "boo-ga-ga-000000111111", cfg );
          int x = 0;
-         for (; x < 10 * 1000 * 1000; ++x) {
-            st(UINT64_MAX, "dodood", "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri"
-               "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-               "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-               "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-               "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-               "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri", "");
-            if (x % 50000 == 0)
+         for ( ; x < 10 * 1000 * 1000; ++x ) {
+            st( UINT64_MAX, "dodood", "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri"
+                "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+                "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+                "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+                "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+                "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri", "" );
+            if ( x % 50000 == 0 )
                std::cout << "|";
          }
          auto end = std::chrono::high_resolution_clock::now();
@@ -63,29 +63,29 @@ int main(int argc, char *argv[]) {
       boost::asio::io_service io;
 
       // Ctrl^C and kill
-      boost::asio::signal_set sigs(io, SIGINT, SIGTERM);
-      sigs.async_wait([&](const boost::system::error_code& error, int signal_number) {
-         if (!error) {
+      boost::asio::signal_set sigs( io, SIGINT, SIGTERM );
+      sigs.async_wait( [ & ] ( const boost::system::error_code& error, int signal_number ) {
+         if ( !error ) {
             std::cout << "Ctrl^C invoked." << std::endl << "Shutting down the system." << std::endl;
             // TODO shutdown services
             io.stop();
          }
-      });
+      } );
 
       //
       // services
       // TODO: replication, local tasks, bridge, producer
       //
-      Storage			   stg(io, cfg);
-      ClientAPISvc		wrt(io, cfg, stg);
-      WebSvc            web(io, cfg);
+      Storage			   stg( io, cfg );
+      ClientAPISvc		wrt( io, cfg, stg );
+      WebSvc            web( io, cfg );
 
       // 
       // events' processing
       //
       boost::thread_group tg;
-      for (int i = 0; i < boost::thread::hardware_concurrency(); ++i) {
-         tg.create_thread([&io]() { io.run(); });
+      for ( int i = 0; i < boost::thread::hardware_concurrency(); ++i ) {
+         tg.create_thread( [ &io ] () { io.run(); } );
       }
       tg.join_all();
    }
