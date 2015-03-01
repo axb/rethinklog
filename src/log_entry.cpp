@@ -23,7 +23,7 @@ size_t LogEntry::size() const {
 }
 
 std::ostream& operator << (std::ostream& os, const LogEntry& le) {
-   le.size(); /// force building json
+   le.size(); /// < force building json
    os << le._json;
    return os;
 }

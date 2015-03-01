@@ -27,32 +27,34 @@ int main(int argc, char *argv[]) {
 
    Config cfg(argc, argv);
 
-   /// tests
-   std::cout << "=== tests mode ===" << std::endl;
-   {
-      auto start = std::chrono::high_resolution_clock::now();
-   
-      auto st = Stripe::create("boo-ga-ga-000000111111", cfg);
-      int x = 0;
-      for (; x < 10 * 1000 * 1000; ++x) {
-         st->append("dodood", "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri"
-                    "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-                    "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-                    "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-                    "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-                    "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri", "");
-         if (x % 50000 == 0)
-            std::cout << "|";
+   if (cfg.me() == "test") {
+      /// tests
+      std::cout << "=== tests mode ===" << std::endl;
+      {
+         auto start = std::chrono::high_resolution_clock::now();
+
+         auto st = Stripe::writer("boo-ga-ga-000000111111", cfg);
+         int x = 0;
+         for (; x < 10 * 1000 * 1000; ++x) {
+            st(UINT64_MAX, "dodood", "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri"
+               "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+               "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+               "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+               "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+               "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri", "");
+            if (x % 50000 == 0)
+               std::cout << "|";
+         }
+         auto end = std::chrono::high_resolution_clock::now();
+         std::chrono::duration<double> diff = end - start;
+         std::cout << std::endl
+            << "made : " << x << " records, " << std::endl
+            << "took : " << diff.count() << " seconds" << std::endl
+            << "perf : " << x / diff.count() << " recs/sec " << std::endl;
       }
-      auto end = std::chrono::high_resolution_clock::now();
-      std::chrono::duration<double> diff = end - start;
-      std::cout << std::endl
-         << "made : " << x << " records, " << std::endl
-         << "took : " << diff.count() << " seconds" << std::endl
-         << "perf : " << x / diff.count() << " recs/sec " << std::endl;
+      return 0;
+      /// } end tests
    }
-   return 0;
-   /// } end tests
 
    {
       //
@@ -74,8 +76,8 @@ int main(int argc, char *argv[]) {
       // services
       // TODO: replication, local tasks, bridge, producer
       //
-      ReplicatedStorage stg(io, cfg);
-      ClientAPISvc    wrt(io, cfg, stg);
+      Storage			   stg(io, cfg);
+      ClientAPISvc		wrt(io, cfg, stg);
       WebSvc            web(io, cfg);
 
       // 

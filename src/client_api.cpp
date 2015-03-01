@@ -1,7 +1,7 @@
 #include "client_api.h"
 #include "storage.h"
 
-ClientAPISvc::ClientAPISvc(boost::asio::io_service & io, Config & cfg, ReplicatedStorage & stg_)
+ClientAPISvc::ClientAPISvc(boost::asio::io_service & io, Config & cfg, Storage & stg_)
    : _io(io), _cfg(cfg), _stg(stg_), _cliSocket(io),
    _acceptor(io, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), _cfg.clientIntfPort() )) { 
    waitNextClient();
@@ -18,7 +18,7 @@ void ClientAPISvc::waitNextClient() {
    });
 }
 
-ClientAPISession::ClientAPISession(boost::asio::ip::tcp::socket& s, ReplicatedStorage& stg)
+ClientAPISession::ClientAPISession(boost::asio::ip::tcp::socket& s, Storage& stg)
    : _soc(std::move(s)), _stg(stg) {
    waitNextMsg();
 }
@@ -37,7 +37,7 @@ void ClientAPISession::waitNextMsg() {
          if (ec)
             return;
 
-         // make protocol
+         /// make protocol
          {
             wire::APIReq req;
             if (!req.ParseFromString(_currentReq._wire_body))

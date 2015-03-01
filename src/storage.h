@@ -12,7 +12,7 @@ namespace bs = boost::iostreams;
 
 ///////////////////////////////////////////////////////////////////////////////////
 //
-// File based storage
+// File based logs storage
 //    Filename is like "<log_dir>/<stripe_id>/<secs_from_epoch>_<num>.log"
 //
 ///////////////////////////////////////////////////////////////////////////////////
@@ -32,11 +32,20 @@ public:
    typedef std::shared_ptr<Stripe> pointer_type;
    static pointer_type create(std::string id_, Config& cfg_) { return pointer_type{ new Stripe(id_, cfg_) }; }
 
-   // for primary nodes
-   uint64_t append(std::string key, std::string data, std::string localtime);
+   static
+      std::function< uint64_t(uint64_t, std::string, std::string, std::string) >
+      writer(std::string id_, Config& cfg_) {
+      auto st = create(id_, cfg_);
+      return [st](uint64_t offset, std::string key, std::string data, std::string localtime) {
+         return (*st)(offset, key, data, localtime);
+      };
+   }
 
-   // for replicas
-   bool write(uint64_t offset, std::string key, std::string data, std::string localtime);
+   // 
+   // for primary nodes
+   // for replicas offset = UINT64_MAX
+   //
+   uint64_t operator() (uint64_t offset, std::string key, std::string data, std::string localtime);
 
    virtual ~Stripe();
 };
@@ -47,7 +56,7 @@ public:
 //
 ///////////////////////////////////////////////////////////////////////////////////
 
-class ReplicatedStorage
+class Storage
 {
    boost::asio::io_service& _io;
    Config& _cfg;
@@ -57,9 +66,17 @@ class ReplicatedStorage
    Stripe::pointer_type stripe(std::string stripeId);
 
 public:
-   ReplicatedStorage(boost::asio::io_service& io, Config& cfg);
+   Storage(boost::asio::io_service& io, Config& cfg);
 
    Config& config();
+
+   std::function< uint64_t(uint64_t, std::string, std::string, std::string) >
+      writer(std::string stripeId) {
+      auto st = stripe(stripeId);
+      return [st](uint64_t offset, std::string key, std::string data, std::string localtime) {
+         return (*st)(offset, key, data, localtime);
+      };
+   }
 
    void publish(std::string stripe, std::string key, std::string data, std::string localtime,
                 std::function< void(uint64_t offset) > whendone_);

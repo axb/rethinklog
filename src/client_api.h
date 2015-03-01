@@ -5,7 +5,7 @@
 
 
 class Config;
-class ReplicatedStorage;
+class Storage;
 
 
 /*
@@ -14,7 +14,7 @@ class ReplicatedStorage;
 class ClientAPISession : public std::enable_shared_from_this<ClientAPISession>
 {
    boost::asio::ip::tcp::socket _soc;
-   ReplicatedStorage& _stg;
+   Storage& _stg;
 
    Msg _currentReq;
    void waitNextMsg();
@@ -25,7 +25,7 @@ class ClientAPISession : public std::enable_shared_from_this<ClientAPISession>
    //
    ///////////////////////////////////////////////////////////////////////////////////
 public:
-   ClientAPISession(boost::asio::ip::tcp::socket& s, ReplicatedStorage& stg);
+   ClientAPISession(boost::asio::ip::tcp::socket& s, Storage& stg);
 };
 
 /*
@@ -35,7 +35,7 @@ class ClientAPISvc
 {
    boost::asio::io_service& _io;
    Config& _cfg;
-   ReplicatedStorage& _stg;
+   Storage& _stg;
 
    boost::asio::ip::tcp::acceptor _acceptor;
    boost::asio::ip::tcp::socket _cliSocket;
@@ -43,5 +43,5 @@ class ClientAPISvc
    void waitNextClient();
 
 public:
-   ClientAPISvc(boost::asio::io_service& io, Config& cfg, ReplicatedStorage& stg_);
+   ClientAPISvc(boost::asio::io_service& io, Config& cfg, Storage& stg_);
 };
