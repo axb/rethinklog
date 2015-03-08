@@ -17,45 +17,40 @@
 #include "client_api.h"
 #include "cluster_api.h"
 #include "web_admin.h"
+#include "object_store.h"
 #include <boost/thread.hpp>
 
 #include <chrono>
 #include <conio.h>
+
 
 int main( int argc, char *argv[] ) {
    std::cout << "RethinkLog - fucking revolution (version 100500)" << std::endl;
 
    Config cfg( argc, argv );
 
-   if ( cfg.me() == "test" ) {
-      /// tests
-      std::cout << "=== tests mode ===" << std::endl;
-      {
-         auto start = std::chrono::high_resolution_clock::now();
+   if ( cfg.me() == "store" ) {
+      namespace mo = MappedObjects;
 
-         auto st = Stripe::writer( "boo-ga-ga-000000111111", cfg );
-         int x = 0;
-         for ( ; x < 10 * 1000 * 1000; ++x ) {
-            st( UINT64_MAX, "dodood", "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri"
-                "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-                "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-                "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-                "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-                "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri", "" );
-            if ( x % 50000 == 0 )
-               std::cout << "|";
-         }
-         auto end = std::chrono::high_resolution_clock::now();
-         std::chrono::duration<double> diff = end - start;
-         std::cout << std::endl
-            << "made : " << x << " records, " << std::endl
-            << "took : " << diff.count() << " seconds" << std::endl
-            << "perf : " << x / diff.count() << " recs/sec " << std::endl;
-      }
+      /// open store
+      mo::Store st; 
+      st.open( "store1.data" );
+
+      /// write lots of data, see how resizing works
+      std::string path;
+      mo::PartyData cli; // PartyData, + add agreements, custom data, etc
+      st.save( cli );
+      path = cli.path();
+
+      /// work with indices
+      mo::Moniker< mo::PartyData > mon( path, &st );
+      mon.resolve();
+      auto obj = mon.operator*();
+
+      /// delete some data, check references
+
       return 0;
-      /// } end tests
    }
-
    {
       //
       // task queue
@@ -93,3 +88,31 @@ int main( int argc, char *argv[] ) {
    return 0;
 }
 
+//if ( cfg.me() == "test" ) {
+//   /// tests
+//   std::cout << "=== tests mode ===" << std::endl;
+//   {
+//      auto start = std::chrono::high_resolution_clock::now();
+
+//      auto st = Stripe::writer( "boo-ga-ga-000000111111", cfg );
+//      int x = 0;
+//      for ( ; x < 10 * 1000 * 1000; ++x ) {
+//         st( UINT64_MAX, "dodood", "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri"
+//             "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+//             "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+//             "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+//             "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+//             "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri", "" );
+//         if ( x % 50000 == 0 )
+//            std::cout << "|";
+//      }
+//      auto end = std::chrono::high_resolution_clock::now();
+//      std::chrono::duration<double> diff = end - start;
+//      std::cout << std::endl
+//         << "made : " << x << " records, " << std::endl
+//         << "took : " << diff.count() << " seconds" << std::endl
+//         << "perf : " << x / diff.count() << " recs/sec " << std::endl;
+//   }
+//   return 0;
+//   /// } end tests
+//}
