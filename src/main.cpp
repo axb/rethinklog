@@ -33,7 +33,7 @@ int main( int argc, char *argv[] ) {
       namespace mo = MappedObjects;
 
       /// open store
-      mo::Store st; 
+      mo::Store st;
       st.open( "store1.data" );
 
       /// write lots of data, see how resizing works
@@ -45,7 +45,7 @@ int main( int argc, char *argv[] ) {
       /// work with indices
       mo::Moniker< mo::PartyData > mon( path, &st );
       mon.resolve();
-      auto obj = mon.operator*();
+      auto obj = mon.operator*( );
 
       /// delete some data, check references
 
@@ -59,7 +59,7 @@ int main( int argc, char *argv[] ) {
 
       // Ctrl^C and kill
       boost::asio::signal_set sigs( io, SIGINT, SIGTERM );
-      sigs.async_wait( [ & ] ( const boost::system::error_code& error, int signal_number ) {
+      sigs.async_wait( [ &] ( const boost::system::error_code& error, int signal_number ) {
          if ( !error ) {
             std::cout << "Ctrl^C invoked." << std::endl << "Shutting down the system." << std::endl;
             // TODO shutdown services

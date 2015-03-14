@@ -46,165 +46,170 @@
 ///////////////////////////////////////////////////////////////////////////////////
 namespace MappedObjects {
 
-class Store;
-class Entry;
-class Composite;
-class MonikerBase;
+   class Store;
 
-///////////////////////////////////////////////////////////////////////////////////
-//
-// Single flat-memory store.
-//
-// Manages 
-//    file mapping, 
-//    splitting, 
-//    gives context to stored aggregates,
-//    allows movement of data between files
-//
-///////////////////////////////////////////////////////////////////////////////////
-class Store
-{
-   // instantiated object model
-   //    + resolved monikers
-   //    + top level objects' index
-   std::unordered_set< Moniker<Composite> > _topLevelComposites;
+   ///////////////////////////////////////////////////////////////////////////////////
+   //
+   // Manipulator classes
+   //
+   ///////////////////////////////////////////////////////////////////////////////////
+   class Entry
+   {
+   protected:
+      // data in the mapping
+      // == mmap_base + _offset
+      void* _ptr;
 
-   // used to 
-   //    change offsets and pointers when moving data
-   //    cache instances & resolve refs   
+   public:
+      // stored size
+      virtual uint32_t slotSize() const { return 0; }
 
-public:
-   bool open(std::string fname) { return true; }
-   void close() {}
+      // Moniker
+      virtual std::string path() const { return ""; }
+   };
 
-   ///  <fixme> get top level composite by ref
-   Composite* byRef(std::string ref) { return nullptr; }
-   ///
-   bool save(Composite& topLevelEntry) { return true; }
+   //
+   // scalar fixed-sized basic types
+   //
+   template < class TData >
+   class FixedSizeScalar : public Entry
+   {
+   public:
+      ///  <todo> assignments from/to TData
+   };
 
-   Composite* topLevelComposite(Entry* inner) { return nullptr; }
-};
+   class Int32 : public FixedSizeScalar < uint32_t > {};
+   class Int64 : public FixedSizeScalar < uint64_t > {};
+   class Float : public FixedSizeScalar < double > {};
+   class DateTime : public FixedSizeScalar < time_t > {};
 
-///////////////////////////////////////////////////////////////////////////////////
-//
-// Naming beast
-// ref is like 
-//    'store_name.{guid_of_top_level_object}.field.field[index].field["key_in_map"].field["index_name" : "key_in_multyindexed_map"]'
-//
-///////////////////////////////////////////////////////////////////////////////////
-class MonikerBase
-{
-protected:
-   /// <todo>  can be made static if 'one file == one process'
-   //          other way - get from prefix of 'ref' and then from static array of Store
-   Store* _store;
-   std::string _ref;
-   uint64_t _offset;
-   Entry* _ptr;
-public:
-   MonikerBase(std::string ref, Store* store = nullptr) : _ptr(nullptr) {} ///< <fixme> resolve   
+   //
+   // scalar var-sized basic types
+   //
+   class VariableSizeEntry : public Entry
+   {
+   protected:
+      uint32_t _size;
+   public:
+      // called by child when it needs more space
+      //    moves the subsequent data after given point
+      virtual void requestNewSlotSize( uint32_t size ) {}
+   };
 
-   Entry* resolve(Store* store = nullptr) { return _ptr; }
+   class String : public VariableSizeEntry {};
+   class ByteArray : public VariableSizeEntry {};
+   class Blob : public VariableSizeEntry {};
 
-   std::string ref() const { return _ref; }
-   Store* store() const { return _store; }
-   bool isNull() const { return _ptr; }
-};
+   //
+   // composite types
+   //
+   class Composite : public VariableSizeEntry
+   {
+   public:
+      // names' resolution
+      //    instanciates all the path
+      virtual Entry* byRef( std::string ref ) { return nullptr; }
+   };
 
-template< class TType = Entry >
-class Moniker : public MonikerBase
-{
-public:
-   Moniker(std::string ref, Store* store = nullptr) : MonikerBase(ref, store) {}
+   class Aggregate : public Composite
+   {
+   public:
+   };
 
-   /// <todo> check types - stored against requested
-   TType* operator ->() { return static_cast<TType*>(_ptr); }
-   TType* operator *() { return static_cast<TType*>(_ptr); }
-};
+   class Array : public Composite
+   {
+   public:
+      virtual size_t size() const;
+      virtual Entry* item( uint32_t ix ) { return nullptr; }
 
+      Entry* operator[] ( int ix ) { return nullptr; }
+      Entry* operator[] ( std::string ix ) { return nullptr; }
+   };
 
-/// <todo>
-class HeapStore : public Store {}; // optimized for one type of objects
-class CollectionsStore : public Store {}; // optimized for named collections (flat lists) of references
-class TreeStore : public Store {}; // optimized for trees (hierarchies) of references
-class DisctributedStore : public Store {}; // optimized for distributed (across network) systems
+   template <class TItem>
+   class Collection : public Array
+   {
+   public:
+      TItem* operator[] ( int ix ) { return nullptr; }
+      TItem* operator[] ( std::string ix ) { return nullptr; }
+   };
 
-///////////////////////////////////////////////////////////////////////////////////
-//
-// Manipulator classes
-//
-///////////////////////////////////////////////////////////////////////////////////
-class Entry
-{
-protected:
-   // data in the mapping
-   // == mmap_base + _offset
-   void* _ptr;
-   uint32_t _size;
+   ///////////////////////////////////////////////////////////////////////////////////
+   //
+   // Naming beast
+   // ref is like 
+   //    'store_name.{guid_of_top_level_object}.field.field[index].field["key_in_map"].field["index_name" : "key_in_multyindexed_map"]'
+   //
+   ///////////////////////////////////////////////////////////////////////////////////
+   class MonikerBase
+   {
+   protected:
+      /// <todo>  can be made static if 'one file == one process'
+      //          other way - get from prefix of 'ref' and then from static array of Store
+      Store*      _store;
+      std::string _ref;
+      uint64_t    _offset;
+      Entry*      _ptr;
+   public:
+      MonikerBase( std::string ref, Store* store = nullptr ) : _ptr( nullptr ) {} ///< <fixme> resolve   
 
-public:
-   // stored size
-   virtual uint32_t size() const { return _size; }
+      Entry* resolve( Store* store = nullptr ) { return _ptr; }
 
-   // Moniker
-   virtual std::string path() const { return ""; }
-};
+      std::string ref() const    { return _ref; }
+      Store* store() const       { return _store; }
+      bool isNull() const        { return _ptr; }
+   };
 
-//
-// scalar fixed-sized basic types
-//
-class FixedSizeScalar : public Entry {};
+   template< class TType = Entry >
+   class Moniker : public MonikerBase
+   {
+   public:
+      Moniker( std::string ref, Store* store = nullptr ) : MonikerBase( ref, store ) {}
 
-class Int32 : public FixedSizeScalar {};
-class Int64 : public FixedSizeScalar {};
-class Float : public FixedSizeScalar {};
-class DateTime : public FixedSizeScalar {};
+      /// <todo> check types - stored against requested
+      TType* operator ->( ) { return static_cast<TType*>( _ptr ); }
+      TType* operator *( )  { return static_cast<TType*>( _ptr ); }
+   };
 
-//
-// scalar var-sized basic types
-//
-class VariableSizeEntry : public Entry
-{
-public:
-   // called by child when it needs more space
-   //    moves all the subsequent data after given point
-   virtual void requestNewSize(uint32_t size) {}
-};
+   ///////////////////////////////////////////////////////////////////////////////////
+   //
+   // Single flat-memory store.
+   //
+   // Manages 
+   //    file mapping, 
+   //    splitting, 
+   //    gives context to stored aggregates,
+   //    allows movement of data between files
+   //
+   ///////////////////////////////////////////////////////////////////////////////////
+   class Store
+   {
+      // instantiated object model
+      //    + resolved monikers
+      //    + top level objects' index
+      std::unordered_set< MonikerBase > _topLevelComposites;
 
-class String : public VariableSizeEntry {};
-class ByteArray : public VariableSizeEntry {};
-class Blob : public VariableSizeEntry {};
+      // used to 
+      //    change offsets and pointers when moving data
+      //    cache instances & resolve refs   
 
-//
-// composite types
-//
-class Composite : public VariableSizeEntry
-{
-public:
-   // names' resolution
-   //    instanciates all the path
-   virtual Entry* byRef(std::string ref) { return nullptr; }
-};
+   public:
+      bool open( std::string fname ) { return true; }
+      void close() {}
 
-class Aggregate : public Composite
-{
-public:
-};
+      ///  <fixme> get top level composite by ref
+      Composite* byRef( std::string ref ) { return nullptr; }
+      ///
+      bool save( Composite& topLevelEntry ) { return true; }
 
-class Array : public Composite
-{
-public:
-   Entry* operator[] (int ix) { return nullptr; }
-   Entry* operator[] (std::string ix) { return nullptr; }
-};
+      Composite* topLevelComposite( Entry* inner ) { return nullptr; }
+   };
 
-template <class TItem>
-class Collection : public Array
-{
-public:
-   TItem* operator[] (int ix) { return nullptr; }
-   TItem* operator[] (std::string ix) { return nullptr; }
-};
+   /// <todo>
+   class HeapStore : public Store {};           // optimized for one type of objects
+   class CollectionsStore : public Store {};    // optimized for named collections (flat lists) of references
+   class TreeStore : public Store {};           // optimized for trees (hierarchies) of references
+   class DisctributedStore : public Store {};   // optimized for distributed (across network) systems
 
 } //< namespace MappedObjects
 
@@ -215,22 +220,22 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////
 namespace MappedObjects {
 
-class PartyData;
+   class PartyData;
 
-class Agreement : public Aggregate
-{
-public:
-   DateTime _date;
-   String _number;
-   Moniker<PartyData> _customer;
-   Collection < String > _covenants;
-};
+   class Agreement : public Aggregate
+   {
+   public:
+      DateTime _date;
+      String _number;
+      Moniker<PartyData> _customer;
+      Collection < String > _covenants;
+   };
 
-class PartyData : public Aggregate
-{
-public:
-   String _name;
+   class PartyData : public Aggregate
+   {
+   public:
+      String _name;
 
-   Collection< Agreement > _docs;
-};
+      Collection< Agreement > _docs;
+   };
 }

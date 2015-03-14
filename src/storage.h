@@ -34,6 +34,11 @@ public:
 
    static TPtr create( std::string id_, Config& cfg_ ) { return TPtr{ new Stripe( id_, cfg_ ) }; }
 
+   //
+   // usage:
+   //    auto wr = storage.writer( "stripe_id", config );
+   //    wr( ..... ); // write data
+   //
    static TWriter writer( std::string id_, Config& cfg_ ) {
       auto st = create( id_, cfg_ );
       return [ st ] ( uint64_t offset, std::string key, std::string data, std::string localtime ) {
