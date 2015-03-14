@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <string>
-#include <unordered_set>
+#include <vector>
 
 ///////////////////////////////////////////////////////////////////////////////////
 //
@@ -96,7 +96,11 @@ namespace MappedObjects {
       virtual void requestNewSlotSize( uint32_t size ) {}
    };
 
-   class String : public VariableSizeEntry {};
+   class String : public VariableSizeEntry 
+   {
+   public:
+      String& operator=( const std::string& what ) { return *this; }
+   };
    class ByteArray : public VariableSizeEntry {};
    class Blob : public VariableSizeEntry {};
 
@@ -119,8 +123,10 @@ namespace MappedObjects {
    class Array : public Composite
    {
    public:
-      virtual size_t size() const;
+      virtual size_t size() const { return 0; }
       virtual Entry* item( uint32_t ix ) { return nullptr; }
+      bool append( Entry* item ) { return true; }
+      void remove( uint32_t ix ) {}
 
       Entry* operator[] ( int ix ) { return nullptr; }
       Entry* operator[] ( std::string ix ) { return nullptr; }
@@ -151,6 +157,7 @@ namespace MappedObjects {
       uint64_t    _offset;
       Entry*      _ptr;
    public:
+      MonikerBase() {}
       MonikerBase( std::string ref, Store* store = nullptr ) : _ptr( nullptr ) {} ///< <fixme> resolve   
 
       Entry* resolve( Store* store = nullptr ) { return _ptr; }
@@ -164,6 +171,7 @@ namespace MappedObjects {
    class Moniker : public MonikerBase
    {
    public:
+      Moniker(): MonikerBase() {}
       Moniker( std::string ref, Store* store = nullptr ) : MonikerBase( ref, store ) {}
 
       /// <todo> check types - stored against requested
@@ -187,7 +195,7 @@ namespace MappedObjects {
       // instantiated object model
       //    + resolved monikers
       //    + top level objects' index
-      std::unordered_set< MonikerBase > _topLevelComposites;
+      std::vector< MonikerBase > _topLevelComposites;
 
       // used to 
       //    change offsets and pointers when moving data
@@ -197,12 +205,16 @@ namespace MappedObjects {
       bool open( std::string fname ) { return true; }
       void close() {}
 
-      ///  <fixme> get top level composite by ref
+      //
+      // top level composites
+      //
+      size_t count() const { return _topLevelComposites.size(); }
+      Composite* byIx( uint32_t ix ) { return nullptr;  }
       Composite* byRef( std::string ref ) { return nullptr; }
-      ///
-      bool save( Composite& topLevelEntry ) { return true; }
-
-      Composite* topLevelComposite( Entry* inner ) { return nullptr; }
+      Composite* byInner( Entry* inner ) { return nullptr; }
+      bool add( Composite& topLevelEntry ) { return true; }
+      void remove( std::string ref ) {}
+      void remove( Composite& topLevelEntry ) {}
    };
 
    /// <todo>

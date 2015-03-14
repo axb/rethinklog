@@ -37,17 +37,17 @@ int main( int argc, char *argv[] ) {
       st.open( "store1.data" );
 
       /// write lots of data, see how resizing works
-      std::string path;
       mo::PartyData cli; // PartyData, + add agreements, custom data, etc
-      st.save( cli );
+      st.add( cli );
+
+      std::string path;
       path = cli.path();
 
-      /// work with indices
+      /// check reading
       mo::Moniker< mo::PartyData > mon( path, &st );
-      mon.resolve();
-      auto obj = mon.operator*( );
-
-      /// delete some data, check references
+      auto agr = new mo::Agreement;
+      mon->_docs.append( agr );
+      agr->_number = "test115";
 
       return 0;
    }
