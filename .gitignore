@@ -31,3 +31,4 @@
 /src/_logz/boo-ga-ga-000000111111
 *.exe
 /src/rethinklog.vcxproj.user
+*.bin

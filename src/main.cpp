@@ -13,79 +13,118 @@
 //
 ////////////////////////////////////////////////////
 
-#include "storage.h"
-#include "client_api.h"
-#include "cluster_api.h"
-#include "web_admin.h"
+//#include "storage.h"
+//#include "client_api.h"
+//#include "cluster_api.h"
+//#include "web_admin.h"
 #include "object_store.h"
-#include <boost/thread.hpp>
+//#include <boost/thread.hpp>
 
-#include <chrono>
 #include <conio.h>
-
 
 int main( int argc, char *argv[] ) {
    std::cout << "RethinkLog - fucking revolution (version 100500)" << std::endl;
 
-   Config cfg( argc, argv );
+   namespace bi = boost::interprocess;
+   namespace mo = MappedObjects;
 
-   if ( cfg.me() == "store" ) {
-      namespace mo = MappedObjects;
+   bool write = false;
 
-      /// open store
-      mo::Store st;
-      st.open( "store1.data" );
-
-      /// write lots of data, see how resizing works
-      mo::PartyData cli; // PartyData, + add agreements, custom data, etc
-      st.add( cli );
-
-      std::string path;
-      path = cli.path();
-
-      /// check reading
-      mo::Moniker< mo::PartyData > mon( path, &st );
-      auto agr = new mo::Agreement;
-      mon->_docs.append( agr );
-      agr->_number = "test115";
-
-      return 0;
-   }
+   //
+   // write
+   //
+   if (write)
    {
-      //
-      // task queue
-      //
-      boost::asio::io_service io;
+      ScopedTM tm( "write" );
 
-      // Ctrl^C and kill
-      boost::asio::signal_set sigs( io, SIGINT, SIGTERM );
-      sigs.async_wait( [ &] ( const boost::system::error_code& error, int signal_number ) {
-         if ( !error ) {
-            std::cout << "Ctrl^C invoked." << std::endl << "Shutting down the system." << std::endl;
-            // TODO shutdown services
-            io.stop();
-         }
-      } );
+      // open memmapped file
+      bi::managed_mapped_file fl( bi::open_or_create, "data.bin", 
+                                 (uint64_t) 1 * (uint64_t) 1024 * (uint64_t) 1024 * (uint64_t) 1024 ); // 1 Gb
+      mo::StoreSM::instance()->_psm = fl.get_segment_manager(); // setup static allocators
 
-      //
-      // services
-      // TODO: replication, local tasks, bridge, producer
-      //
-      Storage			   stg( io, cfg );
-      ClientAPISvc		wrt( io, cfg, stg );
-      WebSvc            web( io, cfg );
+      mo::RootObject* pp = nullptr;
+      int x = 1;
+      for ( x = 1; x < 1000; ++x ) {
+         std::stringstream nm;
+         nm << "obj" << x;
+         mo::RootObject* p = fl.find_or_construct<mo::RootObject>( nm.str().c_str() )( );
+         p->_id = x;
+         p->_name2 = "object of its kind";
+         p->_other = pp;
+         //p->_docs.clear();
+         p->_docs.push_back( mo::SubEntry{ 1, nm.str().c_str() } );
+         p->_docs.push_back( mo::SubEntry{ 2, nm.str().c_str() } );
+         p->_docs.push_back( mo::SubEntry{ 3, nm.str().c_str() } );
 
-      // 
-      // events' processing
-      //
-      boost::thread_group tg;
-      for ( int i = 0; i < boost::thread::hardware_concurrency(); ++i ) {
-         tg.create_thread( [ &io ] () { io.run(); } );
+         pp = p;
       }
-      tg.join_all();
+      tm.setCount( x );
    }
+     
+   //
+   // read
+   //
+   if (!write)
+   {
+      ScopedTM tm( "read" );
 
+      // open memmapped file
+      bi::managed_mapped_file fl( bi::open_only, "data.bin" );
+
+      // test read
+      std::cout << "named objects ------------- {" << std::endl;
+      for ( auto it = fl.named_begin(); it != fl.named_end(); ++it ) {
+         std::cout << it->name();
+         mo::RootObject* p = (mo::RootObject*) it->value();
+         if ( p ) {
+            std::cout << "; id = " << p->_id << "; name2 = " << p->_name2 << "; docs count = " << p->_docs.size();
+            if ( p->_other ) std::cout << "; other id = " << p->_other->_id;
+            std::cout << "; docs : "; for ( auto d : p->_docs )  std::cout << d._name << ",";
+         }
+         std::cout << std::endl;
+      }
+      std::cout << "}" << std::endl;
+   }
+   _getch();
    return 0;
+
+   //Config cfg( argc, argv );
+
+   //{
+   //   //
+   //   // task queue
+   //   //
+   //   boost::asio::io_service io;
+
+   //   // Ctrl^C and kill
+   //   boost::asio::signal_set sigs( io, SIGINT, SIGTERM );
+   //   sigs.async_wait( [ &] ( const boost::system::error_code& error, int signal_number ) {
+   //      if ( !error ) {
+   //         std::cout << "Ctrl^C invoked." << std::endl << "Shutting down the system." << std::endl;
+   //         // TODO shutdown services
+   //         io.stop();
+   //      }
+   //   } );
+
+   //   //
+   //   // services
+   //   // TODO: replication, local tasks, bridge, producer
+   //   //
+   //   Storage			   stg( io, cfg );
+   //   ClientAPISvc		wrt( io, cfg, stg );
+   //   WebSvc            web( io, cfg );
+
+   //   // 
+   //   // events' processing
+   //   //
+   //   boost::thread_group tg;
+   //   for ( int i = 0; i < boost::thread::hardware_concurrency(); ++i ) {
+   //      tg.create_thread( [ &io ] () { io.run(); } );
+   //   }
+   //   tg.join_all();
+   //}
+
+   //return 0;
 }
 
 //if ( cfg.me() == "test" ) {

@@ -1,253 +1,93 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <vector>
+#include <boost/interprocess/managed_mapped_file.hpp>
+#include <boost/interprocess/allocators/allocator.hpp>
+#include <boost/interprocess/containers/string.hpp>
+#include <boost/interprocess/containers/vector.hpp>
 
-///////////////////////////////////////////////////////////////////////////////////
-//
-// Store - mem-mapped file with typed aggregates.
-//
-//    Main goal: in-memory and on-disk representations are the same.
-//
-//    Object may take one or many 'pages'.
-//    If object's resize requires more space then we have, we may split current file.
-//
-//    Reference are managed centrally (on per file basis).
-//    Internal references are in-placed, external ( both incoming and outgoing(?) ) - centralized.
-//
-//    Indices.
-//    ?
-//
-// Type model -----------------------------------------------------------------------------
-//    entry -> scalar
-//             -> number
-//             -> datetime
-//             -> fixed-length string(bytes)
-//             -> reference
-//          -> composite
-//             -> aggregate : list<entry> (multiple types)
-//             -> varying bytes
-//             -> array (indexed, multyindexed) (single type, may be polymorphic types)
-//             -> tag list
-//
-// Store model ----------------------------------------------------------------------------
-//    heap
-//    named collections (groups)
-//    named hierarchies
-//
-// Behavior model -------------------------------------------------------------------------
-//    messages (instance methods)
-//    static (class) methods
-//    event listeners (hooks)
-//       -> on instance
-//       -> on class
-//
-///////////////////////////////////////////////////////////////////////////////////
+#include <chrono>
+
+class ScopedTM
+{
+   std::string _caption;
+   std::chrono::system_clock::time_point _start;
+   int _count;
+public:
+   ScopedTM( std::string caption ) : _caption( caption ), _count( -1 ) {
+      _start = std::chrono::high_resolution_clock::now();
+      std::cout << std::endl << _caption << " ------------ " << std::endl;
+   }
+
+   void setCount( int  cnt ) {
+      _count = cnt;
+   }
+
+   ~ScopedTM() {
+      auto end = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> diff = end - _start;
+      std::cout << std::endl << "took : " << diff.count() << " seconds" << std::endl;
+      if ( _count != -1 ) {
+         std::cout << "made : " << _count << " records, " << std::endl
+            << "perf : " << _count / diff.count() << " recs/sec " << std::endl;
+      }
+   }
+};
+
 namespace MappedObjects {
 
-   class Store;
-
    ///////////////////////////////////////////////////////////////////////////////////
    //
-   // Manipulator classes
+   // boost interprocess helpers
+   // + prototype based inheritance (and voi-la!)
    //
    ///////////////////////////////////////////////////////////////////////////////////
-   class Entry
-   {
-   protected:
-      // data in the mapping
-      // == mmap_base + _offset
-      void* _ptr;
-
-   public:
-      // stored size
-      virtual uint32_t slotSize() const { return 0; }
-
-      // Moniker
-      virtual std::string path() const { return ""; }
-   };
+   namespace bi = boost::interprocess;
 
    //
-   // scalar fixed-sized basic types
+   // allocators 
+   //    - static (templated)
    //
-   template < class TData >
-   class FixedSizeScalar : public Entry
+   class StoreSM
    {
    public:
-      ///  <todo> assignments from/to TData
+      bi::managed_mapped_file::segment_manager* _psm;
+
+      static StoreSM* instance(){
+         static StoreSM* _this = new StoreSM();
+         return _this;
+      }
    };
 
-   class Int32 : public FixedSizeScalar < uint32_t > {};
-   class Int64 : public FixedSizeScalar < uint64_t > {};
-   class Float : public FixedSizeScalar < double > {};
-   class DateTime : public FixedSizeScalar < time_t > {};
-
-   //
-   // scalar var-sized basic types
-   //
-   class VariableSizeEntry : public Entry
-   {
-   protected:
-      uint32_t _size;
+   template <class T > class AllocatorSM : public bi::allocator<T, bi::managed_mapped_file::segment_manager> {
    public:
-      // called by child when it needs more space
-      //    moves the subsequent data after given point
-      virtual void requestNewSlotSize( uint32_t size ) {}
+      AllocatorSM() : bi::allocator<T, bi::managed_mapped_file::segment_manager>( StoreSM::instance()->_psm ) {}
    };
 
-   class String : public VariableSizeEntry 
-   {
-   public:
-      String& operator=( const std::string& what ) { return *this; }
-   };
-   class ByteArray : public VariableSizeEntry {};
-   class Blob : public VariableSizeEntry {};
 
    //
-   // composite types
+   // basic types
    //
-   class Composite : public VariableSizeEntry
-   {
-   public:
-      // names' resolution
-      //    instanciates all the path
-      virtual Entry* byRef( std::string ref ) { return nullptr; }
-   };
+   typedef bi::string String;
+   template <class T> class Vector : public bi::vector < T, AllocatorSM<T> > {};
 
-   class Aggregate : public Composite
-   {
-   public:
-   };
 
-   class Array : public Composite
-   {
-   public:
-      virtual size_t size() const { return 0; }
-      virtual Entry* item( uint32_t ix ) { return nullptr; }
-      bool append( Entry* item ) { return true; }
-      void remove( uint32_t ix ) {}
-
-      Entry* operator[] ( int ix ) { return nullptr; }
-      Entry* operator[] ( std::string ix ) { return nullptr; }
-   };
-
-   template <class TItem>
-   class Collection : public Array
-   {
-   public:
-      TItem* operator[] ( int ix ) { return nullptr; }
-      TItem* operator[] ( std::string ix ) { return nullptr; }
-   };
-
-   ///////////////////////////////////////////////////////////////////////////////////
    //
-   // Naming beast
-   // ref is like 
-   //    'store_name.{guid_of_top_level_object}.field.field[index].field["key_in_map"].field["index_name" : "key_in_multyindexed_map"]'
+   // object model
    //
-   ///////////////////////////////////////////////////////////////////////////////////
-   class MonikerBase
-   {
-   protected:
-      /// <todo>  can be made static if 'one file == one process'
-      //          other way - get from prefix of 'ref' and then from static array of Store
-      Store*      _store;
-      std::string _ref;
-      uint64_t    _offset;
-      Entry*      _ptr;
-   public:
-      MonikerBase() {}
-      MonikerBase( std::string ref, Store* store = nullptr ) : _ptr( nullptr ) {} ///< <fixme> resolve   
-
-      Entry* resolve( Store* store = nullptr ) { return _ptr; }
-
-      std::string ref() const    { return _ref; }
-      Store* store() const       { return _store; }
-      bool isNull() const        { return _ptr; }
-   };
-
-   template< class TType = Entry >
-   class Moniker : public MonikerBase
+   class SubEntry
    {
    public:
-      Moniker(): MonikerBase() {}
-      Moniker( std::string ref, Store* store = nullptr ) : MonikerBase( ref, store ) {}
-
-      /// <todo> check types - stored against requested
-      TType* operator ->( ) { return static_cast<TType*>( _ptr ); }
-      TType* operator *( )  { return static_cast<TType*>( _ptr ); }
-   };
-
-   ///////////////////////////////////////////////////////////////////////////////////
-   //
-   // Single flat-memory store.
-   //
-   // Manages 
-   //    file mapping, 
-   //    splitting, 
-   //    gives context to stored aggregates,
-   //    allows movement of data between files
-   //
-   ///////////////////////////////////////////////////////////////////////////////////
-   class Store
-   {
-      // instantiated object model
-      //    + resolved monikers
-      //    + top level objects' index
-      std::vector< MonikerBase > _topLevelComposites;
-
-      // used to 
-      //    change offsets and pointers when moving data
-      //    cache instances & resolve refs   
-
-   public:
-      bool open( std::string fname ) { return true; }
-      void close() {}
-
-      //
-      // top level composites
-      //
-      size_t count() const { return _topLevelComposites.size(); }
-      Composite* byIx( uint32_t ix ) { return nullptr;  }
-      Composite* byRef( std::string ref ) { return nullptr; }
-      Composite* byInner( Entry* inner ) { return nullptr; }
-      bool add( Composite& topLevelEntry ) { return true; }
-      void remove( std::string ref ) {}
-      void remove( Composite& topLevelEntry ) {}
-   };
-
-   /// <todo>
-   class HeapStore : public Store {};           // optimized for one type of objects
-   class CollectionsStore : public Store {};    // optimized for named collections (flat lists) of references
-   class TreeStore : public Store {};           // optimized for trees (hierarchies) of references
-   class DisctributedStore : public Store {};   // optimized for distributed (across network) systems
-
-} //< namespace MappedObjects
-
-///////////////////////////////////////////////////////////////////////////////////
-//
-// tests
-//
-///////////////////////////////////////////////////////////////////////////////////
-namespace MappedObjects {
-
-   class PartyData;
-
-   class Agreement : public Aggregate
-   {
-   public:
-      DateTime _date;
-      String _number;
-      Moniker<PartyData> _customer;
-      Collection < String > _covenants;
-   };
-
-   class PartyData : public Aggregate
-   {
-   public:
+      int _id;
       String _name;
+   };
 
-      Collection< Agreement > _docs;
+   class RootObject
+   {
+   public:
+      int _id;
+      String _name2;
+      bi::offset_ptr<RootObject> _other;
+      Vector<SubEntry> _docs;
    };
 }
+
