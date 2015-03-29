@@ -23,24 +23,16 @@
 #include <conio.h>
 
 int main( int argc, char *argv[] ) {
-   std::cout << "RethinkLog - fucking revolution (version 100500)" << std::endl;
+   std::cout << "RethinkLog - the revolution (version 100500)" << std::endl;
 
-   namespace bi = boost::interprocess;
    namespace mo = MappedObjects;
 
-   bool write = false;
-
-   //
-   // write
-   //
-   if (write)
-   {
+   if (true) {                                                                                           // write
       ScopedTM tm( "write" );
-
-      // open memmapped file
-      bi::managed_mapped_file fl( bi::open_or_create, "data.bin", 
-                                 (uint64_t) 1 * (uint64_t) 1024 * (uint64_t) 1024 * (uint64_t) 1024 ); // 1 Gb
-      mo::StoreSM::instance()->_psm = fl.get_segment_manager(); // setup static allocators
+      
+      boost::interprocess::managed_mapped_file fl( boost::interprocess::open_or_create, "data.bin",      // open memmapped file
+                                 (uint64_t) 1 * (uint64_t) 1024 * (uint64_t) 1024 * (uint64_t) 1024 );   // 1 Gb
+      mo::StoreSM::instance()->_psm = fl.get_segment_manager();                                          // setup static allocators
 
       mo::RootObject* pp = nullptr;
       int x = 1;
@@ -59,31 +51,20 @@ int main( int argc, char *argv[] ) {
          pp = p;
       }
       tm.setCount( x );
-   }
-     
-   //
-   // read
-   //
-   if (!write)
-   {
+   } else {                                                                                              // read
       ScopedTM tm( "read" );
 
-      // open memmapped file
-      bi::managed_mapped_file fl( bi::open_only, "data.bin" );
+      boost::interprocess::managed_mapped_file fl( boost::interprocess::open_only, "data.bin" );
 
-      // test read
-      std::cout << "named objects ------------- {" << std::endl;
+      std::cout << "named objects ------------- {";
       for ( auto it = fl.named_begin(); it != fl.named_end(); ++it ) {
-         std::cout << it->name();
+         std::cout << std::endl << it->name();
          mo::RootObject* p = (mo::RootObject*) it->value();
-         if ( p ) {
-            std::cout << "; id = " << p->_id << "; name2 = " << p->_name2 << "; docs count = " << p->_docs.size();
-            if ( p->_other ) std::cout << "; other id = " << p->_other->_id;
-            std::cout << "; docs : "; for ( auto d : p->_docs )  std::cout << d._name << ",";
-         }
-         std::cout << std::endl;
+         std::cout << "; id = " << p->_id << "; name2 = " << p->_name2 << "; docs count = " << p->_docs.size();
+         if ( p->_other ) std::cout << "; other id = " << p->_other->_id;
+         std::cout << "; docs : "; for ( auto d : p->_docs )  std::cout << d._name << ",";
       }
-      std::cout << "}" << std::endl;
+      std::cout << std::endl << "}";
    }
    _getch();
    return 0;

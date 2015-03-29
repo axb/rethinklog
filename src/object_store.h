@@ -35,12 +35,11 @@ public:
 
 namespace MappedObjects {
 
-   ///////////////////////////////////////////////////////////////////////////////////
    //
    // boost interprocess helpers
-   // + prototype based inheritance (and voi-la!)
+   // + prototype based inheritance as virtuality is forbidden 
+   //    and voi-la!
    //
-   ///////////////////////////////////////////////////////////////////////////////////
    namespace bi = boost::interprocess;
 
    //
@@ -63,7 +62,6 @@ namespace MappedObjects {
       AllocatorSM() : bi::allocator<T, bi::managed_mapped_file::segment_manager>( StoreSM::instance()->_psm ) {}
    };
 
-
    //
    // basic types
    //
@@ -71,9 +69,11 @@ namespace MappedObjects {
    template <class T> class Vector : public bi::vector < T, AllocatorSM<T> > {};
 
 
+   ///////////////////////////////////////////////////////////////////////////////////
    //
    // object model
    //
+   ///////////////////////////////////////////////////////////////////////////////////
    class SubEntry
    {
    public:
@@ -90,4 +90,3 @@ namespace MappedObjects {
       Vector<SubEntry> _docs;
    };
 }
-
