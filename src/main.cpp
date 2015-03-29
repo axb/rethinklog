@@ -61,8 +61,8 @@ int main( int argc, char *argv[] ) {
          std::cout << std::endl << it->name();
          mo::RootObject* p = (mo::RootObject*) it->value();
          std::cout << "; id = " << p->_id << "; name2 = " << p->_name2 << "; docs count = " << p->_docs.size();
-         if ( p->_other ) std::cout << "; other id = " << p->_other->_id;
-         std::cout << "; docs : "; for ( auto d : p->_docs )  std::cout << d._name << ",";
+         if ( p->_other ) std::cout << "; other id = " << p->_other->_id;                                // reference to other object
+         std::cout << "; docs : "; for ( auto d : p->_docs )  std::cout << d._name << ",";               // sub entry names
       }
       std::cout << std::endl << "}";
    }
