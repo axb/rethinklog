@@ -27,7 +27,7 @@ int main( int argc, char *argv[] ) {
 
    namespace mo = MappedObjects;
 
-   if (true) {                                                                                           // write
+   if (false) {                                                                                           // write
       {
          ScopedTM tm( "write" );
          std::auto_ptr<boost::interprocess::managed_mapped_file> pfl;
@@ -39,7 +39,7 @@ int main( int argc, char *argv[] ) {
 
          mo::RootObject2* pp = nullptr;
          int x = 1;
-         for ( x = 1; x < 50000000; ++x ) {
+         for ( x = 1; x < 50000000; ++x ) { // 50 M records
             std::stringstream nm;
             nm << "obj" << x;
             if ( x % 10000 == 0 ) std::cout << ".";
@@ -88,6 +88,8 @@ int main( int argc, char *argv[] ) {
          //if ( p->_other ) std::cout << "; other id = " << p->_other->_id;                                // reference to other object
          //std::cout << "; docs : "; for ( auto d : p->_docs )  std::cout << d._name << ",";               // sub entry names
          ++cnt;
+         if ( cnt % 1000000 == 0 )
+            std::cout << ".";
       }
       tm.setCount( cnt );
       std::cout << std::endl << "}";
