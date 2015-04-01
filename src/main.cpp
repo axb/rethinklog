@@ -28,42 +28,68 @@ int main( int argc, char *argv[] ) {
    namespace mo = MappedObjects;
 
    if (true) {                                                                                           // write
-      ScopedTM tm( "write" );
-      
-      boost::interprocess::managed_mapped_file fl( boost::interprocess::open_or_create, "data.bin",      // open memmapped file
-                                 (uint64_t) 1 * (uint64_t) 1024 * (uint64_t) 1024 * (uint64_t) 1024 );   // 1 Gb
-      mo::StoreSM::instance()->_psm = fl.get_segment_manager();                                          // setup static allocators
+      {
+         ScopedTM tm( "write" );
+         std::auto_ptr<boost::interprocess::managed_mapped_file> pfl;
 
-      mo::RootObject* pp = nullptr;
-      int x = 1;
-      for ( x = 1; x < 1000; ++x ) {
-         std::stringstream nm;
-         nm << "obj" << x;
-         mo::RootObject* p = fl.find_or_construct<mo::RootObject>( nm.str().c_str() )( );
-         p->_id = x;
-         p->_name2 = "object of its kind";
-         p->_other = pp;
-         //p->_docs.clear();
-         p->_docs.push_back( mo::SubEntry{ 1, nm.str().c_str() } );
-         p->_docs.push_back( mo::SubEntry{ 2, nm.str().c_str() } );
-         p->_docs.push_back( mo::SubEntry{ 3, nm.str().c_str() } );
+         pfl.reset( new boost::interprocess::managed_mapped_file
+            ( boost::interprocess::open_or_create, "data.bin",                     // open memmapped file
+              (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 ) );               // 64 Mb default
+         mo::StoreSM::instance()->_psm = pfl->get_segment_manager();               // setup static allocators
 
-         pp = p;
+         mo::RootObject2* pp = nullptr;
+         int x = 1;
+         for ( x = 1; x < 50000000; ++x ) {
+            std::stringstream nm;
+            nm << "obj" << x;
+            if ( x % 10000 == 0 ) std::cout << ".";
+
+            try {
+               mo::RootObject2* p = pfl->find_or_construct<mo::RootObject2>( nm.str().c_str() )( );
+               p->_id = x;
+               p->_name2 = "object of its kind";
+               p->_other = pp;
+               //p->_docs.clear();
+               p->_docs.push_back( mo::SubEntry{ 1, nm.str().c_str() } );
+               p->_docs.push_back( mo::SubEntry{ 2, nm.str().c_str() } );
+               p->_docs.push_back( mo::SubEntry{ 3, nm.str().c_str() } );
+
+               pp = p;
+            }
+            catch ( boost::interprocess::bad_alloc& e ) {
+               ScopedTM tm( "bad alloc caught, resizing" );
+               pfl.reset( nullptr );
+               boost::interprocess::managed_mapped_file::grow( "data.bin", (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 );
+
+               pfl.reset( new boost::interprocess::managed_mapped_file
+                  ( boost::interprocess::open_or_create, "data.bin",                     // open memmapped file
+                  (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 ) );                 // 64 Mb default
+               mo::StoreSM::instance()->_psm = pfl->get_segment_manager();               // setup static allocators
+            }
+         }
+         tm.setCount( x );
       }
-      tm.setCount( x );
+      {
+         ScopedTM tm( "shrink" );
+         boost::interprocess::managed_mapped_file::shrink_to_fit( "data.bin" );
+      }
    } else {                                                                                              // read
       ScopedTM tm( "read" );
 
       boost::interprocess::managed_mapped_file fl( boost::interprocess::open_only, "data.bin" );
-
+      int cnt = 0;
       std::cout << "named objects ------------- {";
       for ( auto it = fl.named_begin(); it != fl.named_end(); ++it ) {
-         std::cout << std::endl << it->name();
-         mo::RootObject* p = (mo::RootObject*) it->value();
-         std::cout << "; id = " << p->_id << "; name2 = " << p->_name2 << "; docs count = " << p->_docs.size();
-         if ( p->_other ) std::cout << "; other id = " << p->_other->_id;                                // reference to other object
-         std::cout << "; docs : "; for ( auto d : p->_docs )  std::cout << d._name << ",";               // sub entry names
+         //std::cout << std::endl << it->name();
+         mo::RootObject2* p = (mo::RootObject2*) it->value();
+         if ( p->_name2 == "n/a" )
+            std::cout << std::endl << it->name();
+         //std::cout << "; id = " << p->_id << "; name2 = " << p->_name2 << "; docs count = " << p->_docs.size();
+         //if ( p->_other ) std::cout << "; other id = " << p->_other->_id;                                // reference to other object
+         //std::cout << "; docs : "; for ( auto d : p->_docs )  std::cout << d._name << ",";               // sub entry names
+         ++cnt;
       }
+      tm.setCount( cnt );
       std::cout << std::endl << "}";
    }
    _getch();

@@ -65,7 +65,8 @@ namespace MappedObjects {
    //
    // basic types
    //
-   typedef bi::string String;
+   typedef bi::basic_string <char, std::char_traits<char>, AllocatorSM<char> >  String;
+
    template <class T> class Vector : public bi::vector < T, AllocatorSM<T> > {};
 
 
@@ -81,12 +82,12 @@ namespace MappedObjects {
       String _name;
    };
 
-   class RootObject
+   class RootObject2
    {
    public:
       int _id;
       String _name2;
-      bi::offset_ptr<RootObject> _other;
+      bi::offset_ptr<RootObject2> _other;
       Vector<SubEntry> _docs;
    };
 }
