@@ -39,9 +39,9 @@ void ClientAPISession::waitNextMsg() {
 
          /// make protocol
          {
-            wire::APIReq req;
-            if (!req.ParseFromString(_currentReq._wire_body))
-               return;
+//            wire::APIReq req;
+//            if (!req.ParseFromString(_currentReq._wire_body))
+//               return;
 
             //_stg.publish(cmd.stripe(), cmd.key(), cmd.data(), cmd.localtime(), [this, me, cmd](uint64_t offset) {
             //   wire::PublishRes resp; resp.set_clientseq(cmd.clientseq()); resp.set_offset(offset);

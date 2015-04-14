@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "wire.pb.h"
+//#include "wire.pb.h"
 
 struct Msg
 {
@@ -36,16 +36,16 @@ struct Msg
    }
    
    // format for sending
-   void pack(const google::protobuf::Message& m) {
-      _wire_body = m.SerializeAsString();
-
-      int len = _wire_body.size();
-      char buf[header_len + 1];
-      buf[header_len] = 0;
-      sprintf(buf, "%0*d", header_len, len);
-      _wire_hdr.assign(buf, header_len);
-
-      _wire_send.reserve(header_len + len);
-      _wire_send = _wire_hdr + _wire_body;
-   }
+//   void pack(const google::protobuf::Message& m) {
+//      _wire_body = m.SerializeAsString();
+//
+//      int len = _wire_body.size();
+//      char buf[header_len + 1];
+//      buf[header_len] = 0;
+//      sprintf(buf, "%0*d", header_len, len);
+//      _wire_hdr.assign(buf, header_len);
+//
+//      _wire_send.reserve(header_len + len);
+//      _wire_send = _wire_hdr + _wire_body;
+//   }
 };

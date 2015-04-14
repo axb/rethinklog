@@ -26,14 +26,15 @@ int main( int argc, char *argv[] ) {
    std::cout << "RethinkLog - the revolution (version 100500)" << std::endl;
 
    namespace mo = MappedObjects;
-
-   if (false) {                                                                                           // write
+   namespace bi = boost::interprocess;
+   bool bw = true;
+   if (bw) {                                                                                           // write
       {
          ScopedTM tm( "write" );
-         std::auto_ptr<boost::interprocess::managed_mapped_file> pfl;
+         std::auto_ptr<bi::managed_mapped_file> pfl;
 
-         pfl.reset( new boost::interprocess::managed_mapped_file
-            ( boost::interprocess::open_or_create, "data.bin",                     // open memmapped file
+         pfl.reset( new bi::managed_mapped_file
+            ( bi::open_or_create, "data.bin",                     // open memmapped file
               (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 ) );               // 64 Mb default
          mo::StoreSM::instance()->_psm = pfl->get_segment_manager();               // setup static allocators
 
@@ -56,13 +57,13 @@ int main( int argc, char *argv[] ) {
 
                pp = p;
             }
-            catch ( boost::interprocess::bad_alloc& e ) {
+            catch ( bi::bad_alloc& e ) {
                ScopedTM tm( "bad alloc caught, resizing" );
                pfl.reset( nullptr );
-               boost::interprocess::managed_mapped_file::grow( "data.bin", (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 );
+               bi::managed_mapped_file::grow( "data.bin", (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 );
 
-               pfl.reset( new boost::interprocess::managed_mapped_file
-                  ( boost::interprocess::open_or_create, "data.bin",                     // open memmapped file
+               pfl.reset( new bi::managed_mapped_file
+                  ( bi::open_or_create, "data.bin",                     // open memmapped file
                   (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 ) );                 // 64 Mb default
                mo::StoreSM::instance()->_psm = pfl->get_segment_manager();               // setup static allocators
             }
@@ -71,18 +72,18 @@ int main( int argc, char *argv[] ) {
       }
       {
          ScopedTM tm( "shrink" );
-         boost::interprocess::managed_mapped_file::shrink_to_fit( "data.bin" );
+         bi::managed_mapped_file::shrink_to_fit( "data.bin" );
       }
    } else {                                                                                              // read
       ScopedTM tm( "read" );
 
-      boost::interprocess::managed_mapped_file fl( boost::interprocess::open_only, "data.bin" );
+      bi::managed_mapped_file fl( boost::interprocess::open_only, "data.bin" );
       int cnt = 0;
       std::cout << "named objects ------------- {";
       for ( auto it = fl.named_begin(); it != fl.named_end(); ++it ) {
          //std::cout << std::endl << it->name();
          mo::RootObject2* p = (mo::RootObject2*) it->value();
-         if ( p->_name2 == "n/a" )
+         if ( p->_name2 == "n/a" )              // pseudo 'find'
             std::cout << std::endl << it->name();
          //std::cout << "; id = " << p->_id << "; name2 = " << p->_name2 << "; docs count = " << p->_docs.size();
          //if ( p->_other ) std::cout << "; other id = " << p->_other->_id;                                // reference to other object

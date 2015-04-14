@@ -15,7 +15,7 @@
 /// @brief Contains the http_server template class.
 //////////////////////////////////////////////////////////////////////////////
 #include "http_connection.hpp"
-#include "via/comms/server.hpp"
+#include "comms/server.hpp"
 #include <boost/signals2.hpp>
 #ifdef HTTP_SSL
 #include <boost/asio/ssl/context.hpp>

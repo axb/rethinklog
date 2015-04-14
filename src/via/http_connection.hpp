@@ -15,9 +15,9 @@
 /// @brief Contains the http_connection template class.
 /// @see http_server
 //////////////////////////////////////////////////////////////////////////////
-#include "via/http/request.hpp"
-#include "via/http/response.hpp"
-#include "via/comms/connection.hpp"
+#include "http/request.hpp"
+#include "http/response.hpp"
+#include "comms/connection.hpp"
 #include <memory>
 #include <deque>
 #include <iostream>

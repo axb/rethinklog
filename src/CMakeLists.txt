@@ -9,9 +9,9 @@ project(${PROJECT})
    
 #	protobuf
 #
-find_package(Protobuf REQUIRED)   
-include_directories(${PROTOBUF_INCLUDE_DIRS}) 
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS wire.proto)
+#find_package(Protobuf REQUIRED)
+#include_directories(${PROTOBUF_INCLUDE_DIRS})
+#protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS wire.proto)
 
 #	Boost
 #
@@ -42,7 +42,8 @@ add_executable(	${PROJECT}
 
 target_link_libraries(	${PROJECT} 
 						${PROTOBUF_LIBRARIES}
-						${Boost_LIBRARIES} )
+						${Boost_LIBRARIES}
+						 ws2_32 wsock32)
 
 #	client library
 
