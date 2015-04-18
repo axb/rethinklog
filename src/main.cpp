@@ -13,76 +13,134 @@
 //
 ////////////////////////////////////////////////////
 
-//#include "storage.h"
-//#include "client_api.h"
-//#include "cluster_api.h"
-//#include "web_admin.h"
+#include "storage.h"
+#include "client_api.h"
+#include "cluster_api.h"
+#include "web_admin.h"
 #include "object_store.h"
-//#include <boost/thread.hpp>
+#include <boost/thread.hpp>
 
-#include <conio.h>
+void testRead();
+void testWrite();
+
 
 int main( int argc, char *argv[] ) {
    std::cout << "RethinkLog - the revolution (version 100500)" << std::endl;
 
+//   testWrite();
+//   testRead();
+//
+//   char a;
+//   std::cin >> a;
+//   if ( a != 'c')
+//      return 0;
+
+   Config cfg( argc, argv );
+   {
+      //
+      // task queue
+      //
+      boost::asio::io_service io;
+
+      // Ctrl^C and kill
+      boost::asio::signal_set sigs( io, SIGINT, SIGTERM );
+      sigs.async_wait( [ &] ( const boost::system::error_code& error, int signal_number ) {
+         if ( !error ) {
+            std::cout
+               << "Ctrl^C invoked." << std::endl
+               << "Shutting down the system." << std::endl;
+            // TODO shutdown services
+            io.stop();
+         }
+      } );
+
+      //
+      // services
+      // TODO: replication, local tasks, bridge, producer
+      //
+      Storage			   stg( io, cfg );
+      ClientAPISvc		wrt( io, cfg, stg );
+      WebSvc            web( io, cfg );
+
+      //
+      // events' processing
+      //
+      boost::thread_group tg;
+      for ( int i = 0; i < boost::thread::hardware_concurrency(); ++i ) {
+         tg.create_thread( [ &io ] () { io.run(); } );
+      }
+      tg.join_all();
+   }
+
+   return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////
+//
+// tests' bodies
+//
+////////////////////////////////////////////////////////////////////////////
+void testWrite() {
    namespace mo = MappedObjects;
    namespace bi = boost::interprocess;
-   bool bw = true;
-   if (bw) {                                                                                           // write
-      {
-         ScopedTM tm( "write" );
-         std::auto_ptr<bi::managed_mapped_file> pfl;
+   {
+      ScopedTM tm( "write" );
+      std::unique_ptr<bi::managed_mapped_file> pfl;
 
-         pfl.reset( new bi::managed_mapped_file
-            ( bi::open_or_create, "data.bin",                     // open memmapped file
-              (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 ) );               // 64 Mb default
-         mo::StoreSM::instance()->_psm = pfl->get_segment_manager();               // setup static allocators
+      pfl.reset( new bi::managed_mapped_file ( bi::open_or_create, "data.bin",  // open memmapped file
+           (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 ) );               // 64 Mb default
+      mo::StoreSM::instance()->_psm = pfl->get_segment_manager();               // setup static allocators
 
-         mo::RootObject2* pp = nullptr;
-         int x = 1;
-         for ( x = 1; x < 50000000; ++x ) { // 50 M records
-            std::stringstream nm;
-            nm << "obj" << x;
-            if ( x % 10000 == 0 ) std::cout << ".";
+      mo::RootObject2* pp = nullptr;
+      int x ;
+      for ( x = 1; x < 50000000; ++x ) { // 50 M records
+         std::stringstream nm;
+         nm << "obj" << x;
+         if ( x % 10000 == 0 ) std::cout << ".";
 
-            try {
-               mo::RootObject2* p = pfl->find_or_construct<mo::RootObject2>( nm.str().c_str() )( );
-               p->_id = x;
-               p->_name2 = "object of its kind";
-               p->_other = pp;
-               //p->_docs.clear();
-               p->_docs.push_back( mo::SubEntry{ 1, nm.str().c_str() } );
-               p->_docs.push_back( mo::SubEntry{ 2, nm.str().c_str() } );
-               p->_docs.push_back( mo::SubEntry{ 3, nm.str().c_str() } );
+         try {
+            mo::RootObject2* p = pfl->find_or_construct<mo::RootObject2>( nm.str().c_str() )( );
+            p->_id = x;
+            p->_name2 = "object of its kind";
+            p->_other = pp;
 
-               pp = p;
-            }
-            catch ( bi::bad_alloc& e ) {
-               ScopedTM tm( "bad alloc caught, resizing" );
-               pfl.reset( nullptr );
-               bi::managed_mapped_file::grow( "data.bin", (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 );
+            p->_docs.clear();
 
-               pfl.reset( new bi::managed_mapped_file
-                  ( bi::open_or_create, "data.bin",                     // open memmapped file
-                  (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 ) );                 // 64 Mb default
-               mo::StoreSM::instance()->_psm = pfl->get_segment_manager();               // setup static allocators
-            }
+            p->_docs.push_back( mo::SubEntry{ 1, nm.str().c_str() } );
+            p->_docs.push_back( mo::SubEntry{ 2, nm.str().c_str() } );
+            p->_docs.push_back( mo::SubEntry{ 3, nm.str().c_str() } );
+
+            p->_docs.pop_back();
+
+            pp = p;
          }
-         tm.setCount( x );
-      }
-      {
-         ScopedTM tm( "shrink" );
-         bi::managed_mapped_file::shrink_to_fit( "data.bin" );
-      }
-   } else {                                                                                              // read
-      ScopedTM tm( "read" );
+         catch ( bi::bad_alloc& e ) {
+            ScopedTM tm( "bad alloc caught, resizing" );
+            pfl.reset( nullptr );
+            bi::managed_mapped_file::grow( "data.bin", (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 );
 
-      bi::managed_mapped_file fl( boost::interprocess::open_only, "data.bin" );
-      int cnt = 0;
-      std::cout << "named objects ------------- {";
-      for ( auto it = fl.named_begin(); it != fl.named_end(); ++it ) {
+            pfl.reset( new bi::managed_mapped_file ( bi::open_or_create, "data.bin",                          // open memmapped file
+                                                     (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 ) );   // 64 Mb default
+            mo::StoreSM::instance()->_psm = pfl->get_segment_manager();                                       // setup static allocators
+         }
+      }
+      tm.setCount( x );
+   }
+   {
+      ScopedTM tm( "shrink" );
+      boost::interprocess::managed_mapped_file::shrink_to_fit( "data.bin" );
+   }
+}
+
+void testRead() {
+   ScopedTM tm( "read" );
+
+   boost::interprocess::managed_mapped_file fl( boost::interprocess::open_only, "data.bin" );
+   int cnt = 0;
+   std::cout << "named objects ------------- {";
+   for ( auto it = fl.named_begin(); it != fl.named_end(); ++it ) {
          //std::cout << std::endl << it->name();
-         mo::RootObject2* p = (mo::RootObject2*) it->value();
+         MappedObjects::RootObject2* p = (MappedObjects::RootObject2*) it->value();
          if ( p->_name2 == "n/a" )              // pseudo 'find'
             std::cout << std::endl << it->name();
          //std::cout << "; id = " << p->_id << "; name2 = " << p->_name2 << "; docs count = " << p->_docs.size();
@@ -92,49 +150,8 @@ int main( int argc, char *argv[] ) {
          if ( cnt % 1000000 == 0 )
             std::cout << ".";
       }
-      tm.setCount( cnt );
-      std::cout << std::endl << "}";
-   }
-   _getch();
-   return 0;
-
-   //Config cfg( argc, argv );
-
-   //{
-   //   //
-   //   // task queue
-   //   //
-   //   boost::asio::io_service io;
-
-   //   // Ctrl^C and kill
-   //   boost::asio::signal_set sigs( io, SIGINT, SIGTERM );
-   //   sigs.async_wait( [ &] ( const boost::system::error_code& error, int signal_number ) {
-   //      if ( !error ) {
-   //         std::cout << "Ctrl^C invoked." << std::endl << "Shutting down the system." << std::endl;
-   //         // TODO shutdown services
-   //         io.stop();
-   //      }
-   //   } );
-
-   //   //
-   //   // services
-   //   // TODO: replication, local tasks, bridge, producer
-   //   //
-   //   Storage			   stg( io, cfg );
-   //   ClientAPISvc		wrt( io, cfg, stg );
-   //   WebSvc            web( io, cfg );
-
-   //   // 
-   //   // events' processing
-   //   //
-   //   boost::thread_group tg;
-   //   for ( int i = 0; i < boost::thread::hardware_concurrency(); ++i ) {
-   //      tg.create_thread( [ &io ] () { io.run(); } );
-   //   }
-   //   tg.join_all();
-   //}
-
-   //return 0;
+   tm.setCount( cnt );
+   std::cout << std::endl << "}";
 }
 
 //if ( cfg.me() == "test" ) {
