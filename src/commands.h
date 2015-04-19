@@ -1,10 +1,4 @@
-//
-// Created by AlexB on 4/18/2015.
-//
-
-#ifndef RETHINKLOG_COMMANDS_H
-#define RETHINKLOG_COMMANDS_H
-
+#pragma once
 
 #include <string>
 #include <functional>
@@ -58,5 +52,3 @@ namespace commands
 
    };
 }
-
-#endif //RETHINKLOG_COMMANDS_H

@@ -99,7 +99,8 @@ void testWrite() {
          if ( x % 10000 == 0 ) std::cout << ".";
 
          try {
-            mo::RootObject2* p = pfl->find_or_construct<mo::RootObject2>( nm.str().c_str() )( );
+            mo::RootObject2* p;
+            p = pfl->find_or_construct<mo::RootObject2>( nm.str().c_str() )( );
             p->_id = x;
             p->_name2 = "object of its kind";
             p->_other = pp;
