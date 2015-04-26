@@ -7,7 +7,7 @@ Config::Config(int argc, char * argv[]) {
    if (argc > 1)
       _me = argv[1];
 
-   std::string cfn = "rl.config";
+   std::string cfn = "rl.config.json";
    if (argc > 2)
       cfn = argv[2];
 

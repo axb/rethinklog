@@ -2,7 +2,7 @@
 //
 // Args:
 //    me - this node name
-//    config file name - optional, default rl.config
+//    config file name - optional, default rl.config.json
 //
 // Functionality:
 //       web ui
