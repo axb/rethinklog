@@ -13,12 +13,12 @@
 //
 ////////////////////////////////////////////////////
 
+#include <boost/thread.hpp>
 #include "storage.h"
 #include "client_api.h"
 #include "cluster_api.h"
 #include "web_admin.h"
 #include "object_store.h"
-#include <boost/thread.hpp>
 
 void testRead();
 void testWrite();
@@ -44,19 +44,17 @@ int main( int argc, char *argv[] ) {
 
       // Ctrl^C and kill
       boost::asio::signal_set sigs( io, SIGINT, SIGTERM );
-      sigs.async_wait( [ &] ( const boost::system::error_code& error, int signal_number ) {
+      sigs.async_wait( [ & ] ( const boost::system::error_code& error, int signal_number ) {
          if ( !error ) {
             std::cout
                << "Ctrl^C invoked." << std::endl
                << "Shutting down the system." << std::endl;
-            // TODO shutdown services
             io.stop();
          }
       } );
 
       //
       // services
-      // TODO: replication, local tasks, bridge, producer
       //
       Storage			   stg( io, cfg );
       ClientAPISvc		wrt( io, cfg, stg );
@@ -116,7 +114,7 @@ void testWrite() {
             pp = p;
          }
          catch ( bi::bad_alloc& e ) {
-            ScopedTM tm( "bad alloc caught, resizing" );
+            ScopedTM tmr( "bad alloc caught, resizing" );
             pfl.reset( nullptr );
             bi::managed_mapped_file::grow( "data.bin", (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 );
 
