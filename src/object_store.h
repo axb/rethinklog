@@ -5,12 +5,13 @@
 #include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/containers/vector.hpp>
 
+#include <iostream>
 #include <chrono>
 
 class ScopedTM
 {
    std::string _caption;
-   std::chrono::system_clock::time_point _start;
+   std::chrono::high_resolution_clock::time_point _start;
    int _count;
 public:
    ScopedTM( std::string caption ) : _caption( caption ), _count( -1 ) {

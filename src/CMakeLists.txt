@@ -42,8 +42,8 @@ add_executable(	${PROJECT}
 
 target_link_libraries(	${PROJECT} 
 						${PROTOBUF_LIBRARIES}
-						${Boost_LIBRARIES}
-						 ws2_32 wsock32)
+						${Boost_LIBRARIES} )
+#						 ws2_32 wsock32)
 
 #	client library
 
