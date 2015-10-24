@@ -4,7 +4,6 @@
 
 #include "commands.h"
 
-commands::Call::Call( std::string path, std::string method, std::string args,
-                      std::function<void (int)> whendone) {
+commands::Call::Call( std::string path, std::string method, std::string args) {
 //TODO
 }

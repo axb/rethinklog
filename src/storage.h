@@ -15,6 +15,11 @@ namespace bs = boost::iostreams;
 // File based logs storage
 //    Filename is like "<log_dir>/<stripe_id>/<secs_from_epoch>_<num>.log"
 //
+//
+// usage:
+//    auto wr = storage.writer( "stripe_id", config );
+//    wr( ..... ); // write data
+//
 ///////////////////////////////////////////////////////////////////////////////////
 class Stripe : public std::enable_shared_from_this< Stripe >
 {

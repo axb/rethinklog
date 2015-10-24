@@ -1,4 +1,4 @@
-﻿################################################################################
+################################################################################
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
@@ -32,3 +32,13 @@
 *.exe
 /src/rethinklog.vcxproj.user
 *.bin
+
+*.makeDebug
+
+*.makeRelease
+
+*.makeMinSizeRel
+
+*.makeRelWithDebInfo
+
+*.make

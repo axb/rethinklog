@@ -22,18 +22,19 @@
 
 void testRead();
 void testWrite();
+void testStripe();
 
 
 int main( int argc, char *argv[] ) {
    std::cout << "RethinkLog - the revolution (version 100500)" << std::endl;
 
-//   testWrite();
+   testWrite(); // build file larger than memory
 //   testRead();
 //
-//   char a;
-//   std::cin >> a;
-//   if ( a != 'c')
-//      return 0;
+   char a;
+   std::cin >> a;
+   if ( a != 'c')
+      return 0;
 
    Config cfg( argc, argv );
    {
@@ -56,6 +57,43 @@ int main( int argc, char *argv[] ) {
       //
       // services
       //
+      
+      //
+      //
+      // working name - CloudPart.com
+      //
+      // log writer (-- must be in single executable (maybe as library)
+      //             with state due to performance of operations' reasons)
+      // log reader
+      //
+      // state keeper
+      //
+      // tasks' execution
+      //
+      // admin itf
+      // rest data itf
+      // rest log itf
+      
+      ///
+      /// TODO - plugins
+      ///
+      // log
+      //    triggers
+      //    listeners
+      //
+      // state
+      //    object model + serializer + partitioning algo
+      //
+      //    minimal tasks (object methods)
+      //
+      // llvm executor
+      //       + deployment infrastrucutre
+      // python executor
+      // java executor
+      // .NET executor
+      //
+      
+      
       Storage			   stg( io, cfg );
       ClientAPISvc		wrt( io, cfg, stg );
       WebSvc            web( io, cfg );
@@ -83,44 +121,43 @@ void testWrite() {
    namespace bi = boost::interprocess;
    {
       ScopedTM tm( "write" );
-      std::unique_ptr<bi::managed_mapped_file> pfl;
+      std::unique_ptr<bi::managed_mapped_file> mapped_file;
 
-      pfl.reset( new bi::managed_mapped_file ( bi::open_or_create, "data.bin",  // open memmapped file
+      mapped_file.reset( new bi::managed_mapped_file ( bi::open_or_create, "data.bin",  // open memmapped file
            (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 ) );               // 64 Mb default
-      mo::StoreSM::instance()->_psm = pfl->get_segment_manager();               // setup static allocators
+      mo::StoreSM::instance()->_psm = mapped_file->get_segment_manager();               // setup static allocators
 
       mo::RootObject2* pp = nullptr;
       int x ;
       for ( x = 1; x < 50000000; ++x ) { // 50 M records
-         std::stringstream nm;
-         nm << "obj" << x;
+         std::stringstream obj_name;
+         obj_name << "obj" << x;
          if ( x % 10000 == 0 ) std::cout << ".";
 
          try {
             mo::RootObject2* p;
-            p = pfl->find_or_construct<mo::RootObject2>( nm.str().c_str() )( );
+            p = mapped_file->find_or_construct<mo::RootObject2>( obj_name.str().c_str() )( );
             p->_id = x;
             p->_name2 = "object of its kind";
             p->_other = pp;
 
             p->_docs.clear();
 
-            p->_docs.push_back( mo::SubEntry{ 1, nm.str().c_str() } );
-            p->_docs.push_back( mo::SubEntry{ 2, nm.str().c_str() } );
-            p->_docs.push_back( mo::SubEntry{ 3, nm.str().c_str() } );
+            p->_docs.push_back( mo::SubEntry{ 1, obj_name.str().c_str() } );
+            p->_docs.push_back( mo::SubEntry{ 2, obj_name.str().c_str() } );
+            p->_docs.push_back( mo::SubEntry{ 3, obj_name.str().c_str() } );
 
             p->_docs.pop_back();
 
             pp = p;
-         }
-         catch ( bi::bad_alloc& e ) {
-            ScopedTM tmr( "bad alloc caught, resizing" );
-            pfl.reset( nullptr );
+         } catch ( bi::bad_alloc& e ) {
+            ScopedTM tmr( "bad alloc caught, resizing" ); // русский текст
+            mapped_file.reset( nullptr );
             bi::managed_mapped_file::grow( "data.bin", (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 );
 
-            pfl.reset( new bi::managed_mapped_file ( bi::open_or_create, "data.bin",                          // open memmapped file
+            mapped_file.reset( new bi::managed_mapped_file ( bi::open_or_create, "data.bin",                          // open memmapped file
                                                      (uint64_t) 64 * (uint64_t) 1024 * (uint64_t) 1024 ) );   // 64 Mb default
-            mo::StoreSM::instance()->_psm = pfl->get_segment_manager();                                       // setup static allocators
+            mo::StoreSM::instance()->_psm = mapped_file->get_segment_manager();                                       // setup static allocators
          }
       }
       tm.setCount( x );
@@ -153,31 +190,32 @@ void testRead() {
    std::cout << std::endl << "}";
 }
 
-//if ( cfg.me() == "test" ) {
-//   /// tests
-//   std::cout << "=== tests mode ===" << std::endl;
-//   {
-//      auto start = std::chrono::high_resolution_clock::now();
+void testStripe() {
+   /// tests
 
-//      auto st = Stripe::writer( "boo-ga-ga-000000111111", cfg );
-//      int x = 0;
-//      for ( ; x < 10 * 1000 * 1000; ++x ) {
-//         st( UINT64_MAX, "dodood", "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri"
-//             "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-//             "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-//             "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-//             "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
-//             "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri", "" );
-//         if ( x % 50000 == 0 )
-//            std::cout << "|";
-//      }
-//      auto end = std::chrono::high_resolution_clock::now();
-//      std::chrono::duration<double> diff = end - start;
-//      std::cout << std::endl
-//         << "made : " << x << " records, " << std::endl
-//         << "took : " << diff.count() << " seconds" << std::endl
-//         << "perf : " << x / diff.count() << " recs/sec " << std::endl;
-//   }
-//   return 0;
-//   /// } end tests
-//}
+   Config cfg( 1, 0 );
+   
+   std::cout << "=== tests mode ===" << std::endl;
+   {
+      auto start = std::chrono::high_resolution_clock::now();
+
+      auto st = Stripe::writer( "boo-ga-ga-000000111111", cfg );
+      int x = 0;
+      for ( ; x < 10 * 1000 * 1000; ++x ) {
+         st( UINT64_MAX, "dodood", "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri"
+             "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+             "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+             "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+             "u3fhihfkldshlkfjhdslf\"\"\"\" sadasdsadsadasdsadsadasdad{}{} jhkjfhsdkjhfkjsdhkfhh}sdfdsfdsfdsfs}} "
+             "jshgjhslk\r\njghsdlkjfhglksdfhglkj\r\nfdshglkdshjfhsljhflksjhfdlj\r\nkshdflkjhsdljfhlkjdshgsgfdfgri", "" );
+         if ( x % 50000 == 0 )
+            std::cout << ".";
+      }
+      auto end = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> diff = end - start;
+      std::cout << std::endl
+         << "made : " << x << " records, " << std::endl
+         << "took : " << diff.count() << " seconds" << std::endl
+         << "perf : " << x / diff.count() << " recs/sec " << std::endl;
+   }
+}

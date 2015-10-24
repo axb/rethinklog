@@ -6,13 +6,13 @@
 namespace fs = boost::filesystem;
 
 Storage::Storage(boost::asio::io_service & io, Config & cfg)
-	: _cfg(cfg), _io(io) {
-	/// <todo> init stripes & SLAs
+	: _io(io), _cfg(cfg) {
+	// <todo> init stripes & SLAs
 	for (auto sc : _cfg.masterStripes()) {
 		stripe(sc.id);
 	}
-	/// every cluster interface client handler knows which stripes it will write replicas to
-	/// thus, we may need no synchronization on replicated stripes
+	// every cluster interface client handler knows which stripes it will write replicas to
+	// thus, we may need no synchronization on replicated stripes
 	for (auto rsc : _cfg.replicaStripes()) {
 		stripe(rsc.id);
 	}
@@ -88,7 +88,7 @@ void Stripe::buildFrame() {
 	_frame.open(bs::mapped_file_sink(args));
 }
 
-Stripe::Stripe(std::string id_, Config & cfg_) : _cfg(cfg_), _id(id_), _lastOffset(1) {
+Stripe::Stripe(std::string id_, Config & cfg_) : _id(id_), _cfg(cfg_), _lastOffset(1) {
 	/// <todo> read last offset from storage
 }
 

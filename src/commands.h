@@ -25,7 +25,7 @@ namespace commands
    //
    class Call : public Cmd {
    public:
-      Call( std::string path, std::string method, std::string args, std::function<void (int)> whendone);
+      Call( std::string path, std::string method, std::string args);
    };
 
    //
